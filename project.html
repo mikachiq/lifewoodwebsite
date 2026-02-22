@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start Your Project - Lifewood AI Solutions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'dark-serpent': '#133020',
+              'castleton-green': '#046241',
+              'saffron': '#FFB347',
+              'earth-yellow': '#FFC370',
+              'paper': '#f5eedb',
+              'sea-salt': '#F9F7F7',
+              'green-1': '#034E34',
+              'green-2': '#417256',
+              'green-3': '#708E7C',
+              'green-4': '#9CAFA4',
+            },
+            fontFamily: {
+              manrope: ['Manrope', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      html { scroll-behavior: smooth; }
+      body { font-family: 'Manrope', sans-serif; background-color: #f9f7f7; color: #133020; }
+      .dark body { background-color: #0a1612; color: white; }
+      .step-line::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 20px;
+        width: 2px;
+        background: #046241;
+        opacity: 0.2;
+      }
+      .animate-fade-in { animation: fadeIn 0.8s ease-out forwards; opacity: 0; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="selection:bg-saffron selection:text-dark-serpent">
+    <!-- Simple Nav -->
+    <nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-dark-serpent/80 backdrop-blur-md border-b border-gray-100 dark:border-green-900 py-4 px-6 md:px-12">
+        <div class="max-w-[1400px] mx-auto flex justify-between items-center">
+            <a href="index.html" class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-castleton-green rotate-45 flex items-center justify-center">
+                    <div class="absolute inset-0 bg-gradient-to-br from-transparent to-saffron/30"></div>
+                </div>
+                <span class="text-xl font-extrabold tracking-tight dark:text-white">lifewood</span>
+            </a>
+            <a href="index.html" class="text-sm font-bold text-castleton-green dark:text-saffron flex items-center gap-2 hover:gap-4 transition-all">
+                <span>←</span> Back to Home
+            </a>
+        </div>
+    </nav>
+
+    <main class="pt-32 pb-20">
+        <!-- Hero Header -->
+        <header class="max-w-4xl mx-auto px-6 text-center mb-24">
+            <h1 class="text-5xl md:text-6xl font-extrabold mb-6 animate-fade-in leading-tight dark:text-white">
+                How to <span class="text-castleton-green dark:text-saffron">Start Your Project With Us</span> at Lifewood
+            </h1>
+            <p class="text-xl text-green-2 dark:text-green-4 animate-fade-in" style="animation-delay: 0.2s;">
+                A seamless 4-step process to transform your raw data into high-quality AI intelligence.
+            </p>
+        </header>
+
+        <!-- Process Steps -->
+        <section class="max-w-5xl mx-auto px-6 space-y-24 relative step-line">
+            <!-- Step 1 -->
+            <div class="flex flex-col md:flex-row gap-12 relative z-10 animate-fade-in" style="animation-delay: 0.3s;">
+                <div class="shrink-0 w-10 h-10 bg-castleton-green text-white rounded-full flex items-center justify-center font-bold text-xl shadow-lg">1</div>
+                <div>
+                    <h3 class="text-3xl font-extrabold mb-4 dark:text-white">Consultation & Needs Assessment</h3>
+                    <p class="text-lg text-green-2 dark:text-green-4 leading-relaxed mb-6">
+                        Our experts connect with your team to understand the nuances of your AI model requirements. Whether it's medical imaging, autonomous vehicle sensors, or multilingual NLP, we define the scope, labeling guidelines, and quality benchmarks together.
+                    </p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-4 bg-paper/30 dark:bg-green-900/10 rounded-xl border border-paper dark:border-green-800">
+                            <span class="block font-bold text-castleton-green dark:text-saffron mb-1">Timeline</span>
+                            <span class="text-sm dark:text-white">1-2 Business Days</span>
+                        </div>
+                        <div class="p-4 bg-paper/30 dark:bg-green-900/10 rounded-xl border border-paper dark:border-green-800">
+                            <span class="block font-bold text-castleton-green dark:text-saffron mb-1">Deliverable</span>
+                            <span class="text-sm dark:text-white">Project Blueprint</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="flex flex-col md:flex-row gap-12 relative z-10 animate-fade-in" style="animation-delay: 0.4s;">
+                <div class="shrink-0 w-10 h-10 bg-castleton-green text-white rounded-full flex items-center justify-center font-bold text-xl shadow-lg">2</div>
+                <div>
+                    <h3 class="text-3xl font-extrabold mb-4 dark:text-white">Pilot Phase (PoC)</h3>
+                    <p class="text-lg text-green-2 dark:text-green-4 leading-relaxed mb-6">
+                        We execute a small-scale trial using a representative sample of your data. This phase validates the labeling instructions and allows us to demonstrate our "Always On" reliability and precision before committing to full scale.
+                    </p>
+                    <div class="flex flex-wrap gap-3">
+                        <span class="px-3 py-1 bg-white dark:bg-dark-serpent border border-gray-200 dark:border-green-800 rounded-full text-sm font-semibold dark:text-white">Quality Validation</span>
+                        <span class="px-3 py-1 bg-white dark:bg-dark-serpent border border-gray-200 dark:border-green-800 rounded-full text-sm font-semibold dark:text-white">Instruction Refinement</span>
+                        <span class="px-3 py-1 bg-white dark:bg-dark-serpent border border-gray-200 dark:border-green-800 rounded-full text-sm font-semibold dark:text-white">SLA Baseline</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="flex flex-col md:flex-row gap-12 relative z-10 animate-fade-in" style="animation-delay: 0.5s;">
+                <div class="shrink-0 w-10 h-10 bg-castleton-green text-white rounded-full flex items-center justify-center font-bold text-xl shadow-lg">3</div>
+                <div>
+                    <h3 class="text-3xl font-extrabold mb-4 dark:text-white">Workflow Design & Security Setup</h3>
+                    <p class="text-lg text-green-2 dark:text-green-4 leading-relaxed mb-6">
+                        Once the Pilot is successful, we finalize the full-scale operational workflow. This includes setting up secure data pipelines and ensuring our 24/7 delivery centers are primed with the necessary domain expertise.
+                    </p>
+                    <div class="p-6 bg-dark-serpent text-white rounded-2xl">
+                        <h4 class="font-bold text-saffron mb-2">Enterprise-Grade Security</h4>
+                        <p class="text-sm text-green-4">We adhere to ISO 27001 standards and GDPR compliance. Your data remains isolated and encrypted throughout the entire lifecycle.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="flex flex-col md:flex-row gap-12 relative z-10 animate-fade-in" style="animation-delay: 0.6s;">
+                <div class="shrink-0 w-10 h-10 bg-castleton-green text-white rounded-full flex items-center justify-center font-bold text-xl shadow-lg">4</div>
+                <div>
+                    <h3 class="text-3xl font-extrabold mb-4 dark:text-white">Full-Scale Production</h3>
+                    <p class="text-lg text-green-2 dark:text-green-4 leading-relaxed mb-6">
+                        Production begins at scale. Our 56,000+ global resources process your data across multiple shifts, delivering consistent, high-accuracy outputs on a daily basis. You receive real-time updates and direct access to project leads.
+                    </p>
+                    <div class="flex items-center gap-6 p-4 border-2 border-dashed border-castleton-green rounded-2xl">
+                        <div class="text-4xl">🚀</div>
+                        <p class="font-bold text-castleton-green dark:text-saffron">Ready for immediate deployment across 30+ countries.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final Call to Action -->
+        <section class="max-w-4xl mx-auto px-6 mt-40 text-center animate-fade-in" style="animation-delay: 0.7s;">
+            <div class="bg-castleton-green p-12 md:p-20 rounded-[48px] text-white shadow-2xl relative overflow-hidden">
+                <div class="absolute inset-0 bg-[radial-gradient(circle,_rgba(255,179,71,0.1)_0%,_transparent_70%)]"></div>
+                <h2 class="text-4xl font-extrabold mb-6 relative z-10">Start Your Project With Us Today</h2>
+                <p class="text-xl text-white/80 mb-10 relative z-10">
+                    Connect with our strategic solution architects to discuss your specific data needs.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center relative z-10">
+                    <a href="index.html#contact" class="px-10 py-4 bg-saffron text-dark-serpent font-extrabold rounded-full hover:scale-105 transition-all">
+                        Talk to an Expert
+                    </a>
+                    <a href="mailto:contact@lifewood.com" class="px-10 py-4 border-2 border-white/30 text-white font-bold rounded-full hover:bg-white/10 transition-all">
+                        Email Us Directly
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="py-12 text-center text-green-3 dark:text-green-4 border-t border-gray-100 dark:border-green-900/50">
+        <p>&copy; 2026 Lifewood Data Technology. All Rights Reserved.</p>
+    </footer>
+</body>
+</html>
