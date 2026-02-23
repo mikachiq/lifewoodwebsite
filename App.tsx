@@ -17,6 +17,7 @@ import ProjectView from './components/ProjectView';
 import CompanyView from './components/CompanyView';
 
 const App: React.FC = () => {
+  const [modalPresetPosition, setModalPresetPosition] = useState<string | undefined>(undefined);
   const [appState, setAppState] = useState<AppState>(() => {
     const savedLang = localStorage.getItem('language') as Language || 'en';
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'light';
@@ -57,8 +58,9 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const toggleModal = useCallback((open: boolean) => {
+  const toggleModal = useCallback((open: boolean, presetPosition?: string) => {
     setAppState(prev => ({ ...prev, isModalOpen: open }));
+    setModalPresetPosition(open ? presetPosition : undefined);
     if (open) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -129,7 +131,7 @@ const App: React.FC = () => {
             <ServicesOfferedSection translations={t} onPortalClick={() => setView('company')} />
             <Services translations={t} />
             <Impact translations={t} />
-            <CareersSection translations={t} onJoinTeam={() => toggleModal(true)} />
+            <CareersSection translations={t} onJoinTeam={(positionValue?: string) => toggleModal(true, positionValue)} />
             <CTA translations={t} onPortalClick={() => setView('company')} />
           </>
         )}
@@ -159,6 +161,7 @@ const App: React.FC = () => {
           onClose={() => toggleModal(false)} 
           translations={t} 
           onExplorePortal={onExplorePortalFromModal}
+          presetPosition={modalPresetPosition}
         />
       )}
     </div>

@@ -234,11 +234,17 @@ const CompanyView: React.FC<CompanyViewProps> = ({ onBack, translations, onJoinT
                 <div className="p-4 bg-black/20 rounded-xl mb-8 border border-white/5">
                   <p className="text-sm font-bold text-green-4">💡 {model.useCase}</p>
                 </div>
-                <button onClick={() => handleScrollTo('portal-start')} className="w-full py-4 rounded-full border border-white/20 font-bold hover:bg-white hover:text-dark-serpent transition-all">
-                  {translations.portalNavContact}
-                </button>
               </div>
             ))}
+          </div>
+
+          <div className="mt-10 flex justify-center">
+            <button
+              onClick={() => handleScrollTo('portal-start')}
+              className="px-10 py-4 rounded-full border border-white/20 font-bold hover:bg-white hover:text-dark-serpent transition-all"
+            >
+              {translations.portalNavContact}
+            </button>
           </div>
         </div>
       </section>
