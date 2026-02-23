@@ -1,4 +1,5 @@
 import { Translations, TranslationSet } from './types';
+import { PORTAL_LOCALE_PATCHES } from './portalLocalePatches';
 
 const enBase: TranslationSet = {
   navAbout: "About",
@@ -3083,7 +3084,18 @@ navAbout: "회사 소개",
   careerHiringStep2Desc: "귀하의 CV는 채용 요건에 따라 평가됩니다.",
   careerHiringStep3Desc: "지원 상세 정보와 함께 확인 이메일을 받게 됩니다.",
   careerHiringStep4Desc: "프로필이 요건에 부합하면 저희 팀이 연락드립니다.",
-};export const TRANSLATIONS: Translations = {
+};
+
+Object.assign(zhBase, PORTAL_LOCALE_PATCHES.zh || {});
+Object.assign(msBase, PORTAL_LOCALE_PATCHES.ms || {});
+Object.assign(tlBase, PORTAL_LOCALE_PATCHES.tl || {});
+Object.assign(bnBase, PORTAL_LOCALE_PATCHES.bn || {});
+Object.assign(hiBase, PORTAL_LOCALE_PATCHES.hi || {});
+Object.assign(esBase, PORTAL_LOCALE_PATCHES.es || {});
+Object.assign(jaBase, PORTAL_LOCALE_PATCHES.ja || {});
+Object.assign(koBase, PORTAL_LOCALE_PATCHES.ko || {});
+
+export const TRANSLATIONS: Translations = {
   en: enBase,
   zh: zhBase,
   ms: msBase,
@@ -3094,4 +3106,3 @@ navAbout: "회사 소개",
   ja: jaBase,
   ko: koBase
 };
-
