@@ -87,11 +87,11 @@ const Impact: React.FC<ImpactProps> = ({ translations }) => {
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <p className="text-4xl font-black text-castleton-green dark:text-saffron">0%</p>
-                <p className="text-sm font-bold opacity-60 uppercase tracking-widest">{translations.impactChildLabor}</p>
+                <p className="text-sm font-bold opacity-75 text-dark-serpent/70 dark:text-green-4 uppercase tracking-widest">{translations.impactChildLabor}</p>
               </div>
               <div>
                 <p className="text-4xl font-black text-castleton-green dark:text-saffron">100%</p>
-                <p className="text-sm font-bold opacity-60 uppercase tracking-widest">{translations.impactFairWage}</p>
+                <p className="text-sm font-bold opacity-75 text-dark-serpent/70 dark:text-green-4 uppercase tracking-widest">{translations.impactFairWage}</p>
               </div>
             </div>
           </div>

@@ -9,81 +9,81 @@ const CompanyBackground: React.FC<CompanyBackgroundProps> = ({ translations }) =
   const offices = [
     { 
       region: translations.officeRegionHeadquarters, 
-      city: "Petaling Jaya", 
-      country: "Malaysia", 
-      address: "B-13-01, Menara Bata, PJ Trade Centre, No 8, Jalan PJU 8/8A, Bandar Damansara Perdana, 47820 Petaling Jaya, Selangor",
+      city: translations.officeCityPetalingJaya, 
+      country: translations.officeCountryMalaysia, 
+      address: translations.officeAddressPetalingJaya,
       icon: "🇲🇾", 
       image: "/assets/office-petaling-jaya.jpg",
       details: translations.officeDetailsPetalingJaya
     },
     { 
       region: translations.officeRegionDeliveryHub, 
-      city: "Manila", 
-      country: "Philippines", 
-      address: "26th Street, Bonifacio Global City, Taguig, Metro Manila",
+      city: translations.officeCityManila, 
+      country: translations.officeCountryPhilippines, 
+      address: translations.officeAddressManila,
       icon: "🇵🇭", 
       image: "/assets/office-manila.jpg",
       details: translations.officeDetailsManila
     },
     { 
       region: translations.officeRegionDeliveryHub, 
-      city: "Davao", 
-      country: "Philippines", 
-      address: "Pryce Tower, Bajada, Davao City",
+      city: translations.officeCityDavao, 
+      country: translations.officeCountryPhilippines, 
+      address: translations.officeAddressDavao,
       icon: "🇵🇭", 
       image: "/assets/office-davao.jpg",
       details: translations.officeDetailsDavao
     },
     { 
       region: translations.officeRegionDeliveryHub, 
-      city: "Cebu", 
-      country: "Philippines", 
-      address: "Cebu IT Park, Lahug, Cebu City",
+      city: translations.officeCityCebu, 
+      country: translations.officeCountryPhilippines, 
+      address: translations.officeAddressCebu,
       icon: "🇵🇭", 
       image: "/assets/office-cebu.jpg",
       details: translations.officeDetailsCebu
     },
     { 
       region: translations.officeRegionOperations, 
-      city: "Shenzhen", 
-      country: "China", 
-      address: "Nanshan Science and Technology Park, Nanshan District",
+      city: translations.officeCityShenzhen, 
+      country: translations.officeCountryChina, 
+      address: translations.officeAddressShenzhen,
       icon: "🇨🇳", 
       image: "/assets/office-shenzhen.jpg",
       details: translations.officeDetailsShenzhen
     },
     { 
       region: translations.officeRegionStrategicLab, 
-      city: "Tokyo", 
-      country: "Japan", 
-      address: "Marunouchi, Chiyoda City, Tokyo",
+      city: translations.officeCityTokyo, 
+      country: translations.officeCountryJapan, 
+      address: translations.officeAddressTokyo,
       icon: "🇯🇵", 
       image: "/assets/office-tokyo.jpg",
       details: translations.officeDetailsTokyo
     },
     { 
       region: translations.officeRegionBusinessOffice, 
-      city: "London", 
-      country: "United Kingdom", 
-      address: "Canary Wharf, London",
+      city: translations.officeCityLondon, 
+      country: translations.officeCountryUnitedKingdom, 
+      address: translations.officeAddressLondon,
       icon: "🇬🇧", 
       image: "/assets/office-london.jpg",
       details: translations.officeDetailsLondon
     },
     { 
       region: translations.officeRegionBusinessOffice, 
-      city: "New York", 
-      country: "United States", 
-      address: "Manhattan Business District, New York, NY",
+      city: translations.officeCityNewYork, 
+      country: translations.officeCountryUnitedStates, 
+      address: translations.officeAddressNewYork,
       icon: "🇺🇸", 
       image: "/assets/office-new-york.jpg",
       details: translations.officeDetailsNewYork
     },
     { 
       region: translations.officeRegionRegionalHub, 
-      city: "Taipei", 
-      country: "Taiwan", 
-      address: "Xinyi District, Taipei City",
+      city: translations.officeCityTaipei, 
+      country: translations.officeCountryTaiwan, 
+      address: translations.officeAddressTaipei,
       icon: "🇹🇼", 
       image: "/assets/office-taipei.jpg",
       details: translations.officeDetailsTaipei
@@ -177,26 +177,25 @@ const CompanyBackground: React.FC<CompanyBackgroundProps> = ({ translations }) =
                 />
                 
                 {/* Overlay Gradients */}
-                <div className="absolute inset-0 bg-gradient-to-b from-dark-serpent/20 via-transparent to-dark-serpent/90 opacity-80 group-hover:opacity-100 transition-opacity" />
-                <div className="absolute inset-0 bg-castleton-green/40 opacity-0 group-hover:opacity-40 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-b from-dark-serpent/35 via-dark-serpent/25 to-dark-serpent/95 opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-castleton-green/35 opacity-20 group-hover:opacity-35 transition-opacity" />
 
                 {/* Content - Static Title */}
                 <div className="absolute bottom-0 left-0 p-8 w-full transition-transform duration-500 transform group-hover:-translate-y-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-3xl filter drop-shadow-md">{office.icon}</span>
+                  <div className="flex items-center justify-end mb-3">
                     <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-black uppercase tracking-widest text-white border border-white/30">
                       {office.region}
                     </span>
                   </div>
-                  <h4 className="text-3xl font-black text-white mb-1 tracking-tight">
+                  <h4 className="text-3xl font-black text-white mb-1 tracking-tight [text-shadow:0_2px_10px_rgba(0,0,0,0.7)]">
                     {office.city}
                   </h4>
-                  <p className="text-sm font-bold text-saffron uppercase tracking-widest mb-4">
+                  <p className="text-sm font-black text-saffron uppercase tracking-widest mb-4 [text-shadow:0_2px_8px_rgba(0,0,0,0.8)]">
                     {office.country}
                   </p>
                   
                   {/* Address */}
-                  <p className="text-xs text-white/80 font-medium mb-4 flex items-start gap-2">
+                  <p className="text-xs text-white/95 font-semibold mb-4 flex items-start gap-2 [text-shadow:0_2px_8px_rgba(0,0,0,0.75)]">
                     <span className="mt-0.5">📍</span>
                     {office.address}
                   </p>

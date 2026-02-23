@@ -168,15 +168,15 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                         <div className="relative h-full border-r border-castleton-green/10 dark:border-green-4/20">
                           <select 
                             name="phoneCountryCode" value={formData.phoneCountryCode} onChange={handleInputChange}
-                            className="h-full pl-3 pr-8 py-2 bg-transparent text-dark-serpent dark:text-white font-bold text-xs appearance-none focus:outline-none cursor-pointer"
+                            className="h-full pl-3 pr-8 py-2 bg-transparent text-dark-serpent dark:text-white font-bold text-xs appearance-none focus:outline-none cursor-pointer dark:[color-scheme:dark]"
                           >
-                            <option value="+60" className="text-dark-serpent dark:text-white">{'\u{1F1F2}\u{1F1FE}'} +60</option>
-                            <option value="+63" className="text-dark-serpent dark:text-white">{'\u{1F1F5}\u{1F1ED}'} +63</option>
-                            <option value="+86" className="text-dark-serpent dark:text-white">{'\u{1F1E8}\u{1F1F3}'} +86</option>
-                            <option value="+81" className="text-dark-serpent dark:text-white">{'\u{1F1EF}\u{1F1F5}'} +81</option>
-                            <option value="+44" className="text-dark-serpent dark:text-white">{'\u{1F1EC}\u{1F1E7}'} +44</option>
-                            <option value="+1" className="text-dark-serpent dark:text-white">{'\u{1F1FA}\u{1F1F8}'} +1</option>
-                            <option value="+886" className="text-dark-serpent dark:text-white">{'\u{1F1F9}\u{1F1FC}'} +886</option>
+                            <option value="+60" className="text-dark-serpent bg-white">MY +60</option>
+                            <option value="+63" className="text-dark-serpent bg-white">PH +63</option>
+                            <option value="+86" className="text-dark-serpent bg-white">CN +86</option>
+                            <option value="+81" className="text-dark-serpent bg-white">JP +81</option>
+                            <option value="+44" className="text-dark-serpent bg-white">GB +44</option>
+                            <option value="+1" className="text-dark-serpent bg-white">US +1</option>
+                            <option value="+886" className="text-dark-serpent bg-white">TW +886</option>
                           </select>
                           <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-dark-serpent dark:text-white">
                             <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20">
@@ -196,7 +196,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                       <div className="relative">
                         <select 
                           required name="position" value={formData.position} onChange={handleInputChange}
-                          className={`w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 rounded-2xl focus:border-castleton-green focus:outline-none transition-all font-bold text-xs appearance-none cursor-pointer ${formData.position ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
+                          className={`w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 rounded-2xl focus:border-castleton-green focus:outline-none transition-all font-bold text-xs appearance-none cursor-pointer dark:[color-scheme:dark] ${formData.position ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
                         >
                           <option value="" disabled>{translations.formPositionPlaceholder}</option>
                           {positions.map(p => (
@@ -215,7 +215,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                       <div className="relative">
                         <select 
                           required name="experience" value={formData.experience} onChange={handleInputChange}
-                          className={`w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 rounded-2xl focus:border-castleton-green focus:outline-none transition-all font-bold text-xs appearance-none cursor-pointer ${formData.experience ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
+                          className={`w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 rounded-2xl focus:border-castleton-green focus:outline-none transition-all font-bold text-xs appearance-none cursor-pointer dark:[color-scheme:dark] ${formData.experience ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
                         >
                           <option value="" disabled>{translations.formExpPlaceholder}</option>
                           {experienceLevels.map(e => (
@@ -234,18 +234,18 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                       <div className="relative">
                         <select 
                           required name="workLocation" value={formData.workLocation} onChange={handleInputChange}
-                          className={`w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 rounded-2xl focus:border-castleton-green focus:outline-none transition-all font-bold text-xs appearance-none cursor-pointer ${formData.workLocation ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
+                          className={`w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 rounded-2xl focus:border-castleton-green focus:outline-none transition-all font-bold text-xs appearance-none cursor-pointer dark:[color-scheme:dark] ${formData.workLocation ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
                         >
                           <option value="" disabled>{translations.formWorkLocationPlaceholder}</option>
-                          <option value="Petaling Jaya" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">Petaling Jaya</option>
-                          <option value="Manila" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">Manila</option>
-                          <option value="Davao" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">Davao</option>
-                          <option value="Cebu" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">Cebu</option>
-                          <option value="Shenzhen" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">Shenzhen</option>
-                          <option value="Tokyo" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">Tokyo</option>
-                          <option value="London" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">London</option>
-                          <option value="New York" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">New York</option>
-                          <option value="Taipei" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">Taipei</option>
+                          <option value="petaling-jaya" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.officeCityPetalingJaya}</option>
+                          <option value="manila" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.officeCityManila}</option>
+                          <option value="davao" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.officeCityDavao}</option>
+                          <option value="cebu" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.officeCityCebu}</option>
+                          <option value="shenzhen" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.officeCityShenzhen}</option>
+                          <option value="tokyo" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.officeCityTokyo}</option>
+                          <option value="london" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.officeCityLondon}</option>
+                          <option value="new-york" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.officeCityNewYork}</option>
+                          <option value="taipei" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.officeCityTaipei}</option>
                         </select>
                         <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-dark-serpent dark:text-white">
                           <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">

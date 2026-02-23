@@ -10,6 +10,8 @@ const CareersSection: React.FC<CareersSectionProps> = ({ translations, onJoinTea
   const [expandedJob, setExpandedJob] = useState<number | null>(null);
   const [selectedPosition, setSelectedPosition] = useState<string>("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const safeText = (value: string | undefined, fallback = "—") =>
+    value && value.trim().length > 0 ? value : fallback;
 
   const images = [
     "/assets/career-1.jpg",
@@ -32,7 +34,7 @@ const CareersSection: React.FC<CareersSectionProps> = ({ translations, onJoinTea
         translations.careerJob1Qual1,
         translations.careerJob1Qual2,
         translations.careerJob1Qual3
-      ]
+      ].filter((q): q is string => Boolean(q && q.trim()))
     },
     {
       title: translations.careerJob2Title,
@@ -44,7 +46,7 @@ const CareersSection: React.FC<CareersSectionProps> = ({ translations, onJoinTea
         translations.careerJob2Qual1,
         translations.careerJob2Qual2,
         translations.careerJob2Qual3
-      ]
+      ].filter((q): q is string => Boolean(q && q.trim()))
     },
     {
       title: translations.careerJob3Title,
@@ -56,7 +58,7 @@ const CareersSection: React.FC<CareersSectionProps> = ({ translations, onJoinTea
         translations.careerJob3Qual1,
         translations.careerJob3Qual2,
         translations.careerJob3Qual3
-      ]
+      ].filter((q): q is string => Boolean(q && q.trim()))
     },
     {
       title: translations.careerJob4Title,
@@ -68,7 +70,7 @@ const CareersSection: React.FC<CareersSectionProps> = ({ translations, onJoinTea
         translations.careerJob4Qual1,
         translations.careerJob4Qual2,
         translations.careerJob4Qual3
-      ]
+      ].filter((q): q is string => Boolean(q && q.trim()))
     },
     {
       title: translations.careerJob5Title,
@@ -80,7 +82,7 @@ const CareersSection: React.FC<CareersSectionProps> = ({ translations, onJoinTea
         translations.careerJob5Qual1,
         translations.careerJob5Qual2,
         translations.careerJob5Qual3
-      ]
+      ].filter((q): q is string => Boolean(q && q.trim()))
     }
   ];
 
@@ -284,8 +286,8 @@ const CareersSection: React.FC<CareersSectionProps> = ({ translations, onJoinTea
                     <div>
                       <h4 className="text-3xl font-black text-dark-serpent dark:text-white mb-2 group-hover:text-castleton-green dark:group-hover:text-saffron transition-colors">{job.title}</h4>
                       <div className="flex gap-4">
-                        <span className="px-3 py-1 bg-paper dark:bg-green-900/30 text-[10px] font-black uppercase tracking-widest text-dark-serpent dark:text-white rounded-md">{job.dept}</span>
-                        <span className="px-3 py-1 bg-paper dark:bg-green-900/30 text-[10px] font-black uppercase tracking-widest text-dark-serpent dark:text-white rounded-md">{job.loc}</span>
+                        <span className="px-3 py-1 bg-paper dark:bg-green-900/30 text-[10px] font-black uppercase tracking-widest text-dark-serpent dark:text-white rounded-md">{safeText(job.dept)}</span>
+                        <span className="px-3 py-1 bg-paper dark:bg-green-900/30 text-[10px] font-black uppercase tracking-widest text-dark-serpent dark:text-white rounded-md">{safeText(job.loc)}</span>
                       </div>
                     </div>
                   </div>
@@ -310,8 +312,8 @@ const CareersSection: React.FC<CareersSectionProps> = ({ translations, onJoinTea
                     <div className="pt-8">
                       <h5 className="text-sm font-black uppercase tracking-widest text-dark-serpent dark:text-white mb-4">{translations.careerKeyQualifications}</h5>
                       <ul className="space-y-3">
-                        {job.qualifications.map((q, idx) => (
-                          <li key={idx} className="flex items-start gap-3 text-green-1 dark:text-green-4 font-medium">
+                        {(job.qualifications.length > 0 ? job.qualifications : ["—"]).map((q, idx) => (
+                          <li key={idx} className="flex items-start gap-3 text-dark-serpent/80 dark:text-green-4 font-medium">
                             <span className="text-castleton-green dark:text-saffron mt-1">✓</span>
                             {q}
                           </li>
