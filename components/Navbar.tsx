@@ -7,6 +7,7 @@ interface NavbarProps {
   theme: 'light' | 'dark';
   onThemeToggle: () => void;
   onJoinTeam: () => void;
+  onLogin: () => void;
   translations: TranslationSet;
   currentView: View;
   onNavigate: (view: View) => void;
@@ -19,6 +20,7 @@ const Navbar: React.FC<NavbarProps> = ({
   theme, 
   onThemeToggle, 
   onJoinTeam,
+  onLogin,
   translations,
   currentView,
   onNavigate,
@@ -86,6 +88,7 @@ const Navbar: React.FC<NavbarProps> = ({
               <li><button onClick={() => onNavClick('portal-engagement')} className="hover:text-castleton-green dark:hover:text-saffron transition-colors whitespace-nowrap">{translations.portalNavResults}</button></li>
               <li><button onClick={() => onNavClick('portal-ethics')} className="hover:text-castleton-green dark:hover:text-saffron transition-colors whitespace-nowrap">{translations.portalNavEthics}</button></li>
               <li><button onClick={() => onNavClick('portal-pricing')} className="hover:text-castleton-green dark:hover:text-saffron transition-colors whitespace-nowrap">{translations.portalNavPricing}</button></li>
+              <li><button onClick={onLogin} className="hover:text-castleton-green dark:hover:text-saffron transition-colors whitespace-nowrap">{translations.navLogin || 'Login'}</button></li>
               <li>
                 <button 
                   onClick={() => onNavClick('portal-start')} 
@@ -104,6 +107,7 @@ const Navbar: React.FC<NavbarProps> = ({
               <li><button onClick={() => onNavClick('services')} className="hover:text-castleton-green dark:hover:text-saffron transition-colors">{translations.navServices}</button></li>
               <li><button onClick={() => onNavClick('impact')} className="hover:text-castleton-green dark:hover:text-saffron transition-colors">{translations.navImpact}</button></li>
               <li><button onClick={() => onNavClick('careers')} className="hover:text-castleton-green dark:hover:text-saffron transition-colors">{translations.navCareers}</button></li>
+              <li><button onClick={onLogin} className="hover:text-castleton-green dark:hover:text-saffron transition-colors">{translations.navLogin || 'Login'}</button></li>
               <li>
                 <button 
                   onClick={() => onNavClick('contact')} 
@@ -179,6 +183,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 <li><button onClick={() => { onNavClick('portal-engagement'); setMobileMenuOpen(false); }}>{translations.portalNavResults}</button></li>
                 <li><button onClick={() => { onNavClick('portal-ethics'); setMobileMenuOpen(false); }}>{translations.portalNavEthics}</button></li>
                 <li><button onClick={() => { onNavClick('portal-pricing'); setMobileMenuOpen(false); }}>{translations.portalNavPricing}</button></li>
+                <li><button onClick={() => { onLogin(); setMobileMenuOpen(false); }}>{translations.navLogin || 'Login'}</button></li>
                 <li><button onClick={() => { onNavClick('portal-start'); setMobileMenuOpen(false); }}>{translations.portalNavContact}</button></li>
               </>
             ) : (
@@ -190,6 +195,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 <li><button onClick={() => { onNavClick('services'); setMobileMenuOpen(false); }}>{translations.navServices}</button></li>
                 <li><button onClick={() => { onNavClick('impact'); setMobileMenuOpen(false); }}>{translations.navImpact}</button></li>
                 <li><button onClick={() => { onNavClick('careers'); setMobileMenuOpen(false); }}>{translations.navCareers}</button></li>
+                <li><button onClick={() => { onLogin(); setMobileMenuOpen(false); }}>{translations.navLogin || 'Login'}</button></li>
                 <li><button onClick={() => { onNavClick('contact'); setMobileMenuOpen(false); }} className="inline-block bg-saffron text-dark-serpent px-8 py-3 rounded-full text-center">{translations.navContact}</button></li>
               </>
             )}

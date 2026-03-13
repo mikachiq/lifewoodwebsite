@@ -10,6 +10,8 @@ import Services from './components/Services';
 import ServicesOfferedSection from './components/ServicesOfferedSection';
 import Impact from './components/Impact';
 import CareersSection from './components/CareersSection';
+import LoginModal from './components/LoginModal';
+import SignUpModal from './components/SignUpModal';
 import CTA from './components/CTA';
 import Footer from './components/Footer';
 import EmploymentModal from './components/EmploymentModal';
@@ -18,6 +20,8 @@ import CompanyView from './components/CompanyView';
 
 const App: React.FC = () => {
   const [modalPresetPosition, setModalPresetPosition] = useState<string | undefined>(undefined);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isSignUpOpen, setIsSignUpOpen] = useState(false);
   const [appState, setAppState] = useState<AppState>(() => {
     const savedLang = localStorage.getItem('language') as Language || 'en';
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'light';
@@ -74,6 +78,11 @@ const App: React.FC = () => {
   }, [setView, toggleModal]);
 
   const handleNavClick = (sectionId: string) => {
+    if (sectionId === 'login') {
+      setIsLoginOpen(true);
+      return;
+    }
+
     // Check if we are in the portal view and the clicked link is a portal section
     const isInternalPortalNav = appState.currentView === 'company' && [
       'portal-home', 'portal-process', 'portal-tools', 'portal-engagement', 'portal-ethics', 'portal-pricing', 'portal-start'
@@ -110,6 +119,7 @@ const App: React.FC = () => {
         theme={appState.theme} 
         onThemeToggle={toggleTheme}
         onJoinTeam={() => toggleModal(true)}
+        onLogin={() => setIsLoginOpen(true)}
         translations={t}
         currentView={appState.currentView}
         onNavigate={setView}
@@ -123,6 +133,7 @@ const App: React.FC = () => {
               translations={t} 
               onJoinTeam={() => toggleModal(true)} 
               onNavigate={setView}
+              onSignUp={() => setIsSignUpOpen(true)}
               theme={appState.theme}
             />
             <Stats translations={t} />
@@ -164,6 +175,9 @@ const App: React.FC = () => {
           presetPosition={modalPresetPosition}
         />
       )}
+
+      <LoginModal open={isLoginOpen} onClose={() => setIsLoginOpen(false)} translations={t} />
+      <SignUpModal open={isSignUpOpen} onClose={() => setIsSignUpOpen(false)} translations={t} />
     </div>
   );
 };

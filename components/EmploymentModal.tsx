@@ -147,21 +147,32 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
   };
 
   const benefits = [
-    { icon: '\u{1F30D}', label: translations.benefit1 },
-    { icon: '\u{1F680}', label: translations.benefit2 },
-    { icon: '\u{1F4B0}', label: translations.benefit3 },
-    { icon: '\u{1F331}', label: translations.benefit4 },
-    { icon: '\u{1F91D}', label: translations.benefit5 },
-    { icon: '\u{1F3AF}', label: translations.benefit6 },
+    { label: translations.benefit1 },
+    { label: translations.benefit2 },
+    { label: translations.benefit3 },
+    { label: translations.benefit4 },
+    { label: translations.benefit5 },
+    { label: translations.benefit6 },
   ];
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300">
-      <div className="absolute inset-0 bg-dark-serpent/95 backdrop-blur-md" onClick={onClose} />
+    <div className="fixed inset-0 z-[2000]" role="dialog" aria-modal="true" aria-label={translations.modalTitle || 'Application'}>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label={translations.closeLabel || 'Close'}
+        className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+      />
 
-      <div className="relative bg-paper dark:bg-[#0a1612] w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[32px] shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col">
-        {isSubmitted ? (
-          <div className="p-8 md:p-24 text-center animate-in zoom-in-95 duration-500">
+      <div className="relative min-h-full flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-paper/20 dark:bg-white/5 p-1.5 rounded-[44px] shadow-3xl border border-paper dark:border-green-900/30 animate-in zoom-in-95 duration-300">
+            <div className="bg-paper/60 dark:bg-dark-serpent/50 rounded-[40px] relative overflow-hidden">
+              <div className="absolute -top-16 -right-16 w-56 h-56 bg-castleton-green/10 dark:bg-saffron/10 rounded-full blur-[40px]" />
+
+              <div className="relative">
+                {isSubmitted ? (
+          <div className="p-8 md:p-16 text-center animate-in zoom-in-95 duration-500">
             <div className="w-24 h-24 bg-castleton-green/10 dark:bg-saffron/10 rounded-full flex items-center justify-center text-5xl mx-auto mb-10 animate-bounce">
               {'\u2713'}
             </div>
@@ -188,26 +199,37 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
           </div>
         ) : (
           <>
-            <div className="p-6 bg-gradient-to-r from-castleton-green to-green-1 text-white rounded-t-[32px] relative flex items-center justify-between shadow-md z-10">
-              <div>
-                <h2 className="text-2xl md:text-3xl font-extrabold">{translations.modalTitle}</h2>
-                <p className="text-sm md:text-base text-white/90 opacity-90">{translations.modalSubtitle}</p>
+            <div className="p-6 md:p-8 flex items-start justify-between gap-6 border-b border-paper dark:border-green-900/30">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-white/70 dark:bg-green-900/20 border border-paper dark:border-green-800 flex items-center justify-center text-xl">
+                  {'\u{1F4DD}'}
+                </div>
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-black text-dark-serpent dark:text-white tracking-tight leading-none">
+                    {translations.modalTitle}
+                  </h2>
+                  <p className="mt-1 text-sm md:text-base font-bold text-green-1 dark:text-green-3 opacity-90">
+                    {translations.modalSubtitle}
+                  </p>
+                </div>
               </div>
               <button
+                type="button"
                 onClick={onClose}
-                className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-2xl hover:bg-saffron hover:text-dark-serpent transition-all"
+                className="w-10 h-10 rounded-2xl bg-white/70 dark:bg-green-900/20 border border-paper dark:border-green-800 text-dark-serpent dark:text-white font-black hover:opacity-80 transition-opacity"
+                aria-label={translations.closeLabel || 'Close'}
               >
-                x
+                {'\u00D7'}
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
-              <div className="bg-white/40 dark:bg-green-900/10 py-3 px-4 rounded-2xl border border-castleton-green/10 dark:border-green-800 flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-6">
-                <span className="text-xs font-bold text-dark-serpent dark:text-white uppercase tracking-wider shrink-0">{translations.modalBenefitsTitle}</span>
+            <div className="p-6 md:p-8 space-y-6">
+              <div className="bg-white/70 dark:bg-green-900/20 py-3 px-4 rounded-2xl border border-paper dark:border-green-800 flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-6">
+                <span className="text-xs font-black text-dark-serpent dark:text-white uppercase tracking-widest shrink-0">{translations.modalBenefitsTitle}</span>
                 <div className="flex flex-wrap gap-x-6 gap-y-2 items-center">
                   {benefits.map((b, i) => (
                     <div key={i} className="flex items-center gap-2" title={b.label}>
-                      <span className="text-lg">{b.icon}</span>
+                      <span className="w-2 h-2 rounded-full bg-castleton-green dark:bg-saffron" />
                       <span className="text-[10px] md:text-xs font-bold text-green-1 dark:text-green-3 whitespace-nowrap">{b.label}</span>
                     </div>
                   ))}
@@ -231,7 +253,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                           <input
                             type="text" required name="firstName" value={formData.firstName} onChange={handleInputChange}
                             placeholder={translations.formFirstNamePlaceholder}
-                            className="w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green focus:outline-none transition-all text-xs font-bold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-[10px] placeholder:font-semibold"
+                            className="w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors text-sm font-semibold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs"
                           />
                         </div>
                         <div className="space-y-1">
@@ -239,7 +261,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                           <input
                             type="text" required name="lastName" value={formData.lastName} onChange={handleInputChange}
                             placeholder={translations.formLastNamePlaceholder}
-                            className="w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green focus:outline-none transition-all text-xs font-bold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-[10px] placeholder:font-semibold"
+                            className="w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors text-sm font-semibold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs"
                           />
                         </div>
                         <div className="space-y-1">
@@ -247,7 +269,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                           <input
                             type="email" required name="email" value={formData.email} onChange={handleInputChange}
                             placeholder={translations.formEmailPlaceholder}
-                            className="w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green focus:outline-none transition-all text-xs font-bold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-[10px] placeholder:font-semibold"
+                            className="w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors text-sm font-semibold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs"
                           />
                         </div>
                       </div>
@@ -255,11 +277,11 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                         <div className="space-y-1">
                           <label className="text-[11px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-85">{translations.formPhone} <span className="text-saffron">*</span></label>
-                          <div className="flex items-center w-full border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 rounded-2xl focus-within:border-castleton-green transition-all overflow-hidden">
-                            <div className="relative h-full border-r border-castleton-green/10 dark:border-green-4/20">
+                          <div className="flex items-center w-full border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] rounded-2xl focus-within:border-castleton-green dark:focus-within:border-saffron transition-colors overflow-hidden">
+                            <div className="relative h-full border-r border-paper dark:border-green-800">
                               <select
                                 name="phoneCountryCode" value={formData.phoneCountryCode} onChange={handleInputChange}
-                                className="h-full pl-3 pr-8 py-2 bg-transparent text-dark-serpent dark:text-white font-bold text-xs appearance-none focus:outline-none cursor-pointer dark:[color-scheme:dark]"
+                                className="h-full pl-3 pr-8 py-3 bg-transparent text-dark-serpent dark:text-white font-semibold text-sm appearance-none focus:outline-none cursor-pointer dark:[color-scheme:dark]"
                               >
                                 <option value="+60" className="text-dark-serpent bg-white">MY +60</option>
                                 <option value="+63" className="text-dark-serpent bg-white">PH +63</option>
@@ -278,7 +300,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                             <input
                               type="tel" required name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange}
                               placeholder={translations.formPhonePlaceholder}
-                              className="flex-1 px-3 py-2 bg-transparent text-dark-serpent dark:text-white focus:outline-none text-xs font-bold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-[10px] placeholder:font-semibold"
+                              className="flex-1 px-4 py-3 bg-transparent text-dark-serpent dark:text-white focus:outline-none text-sm font-semibold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs"
                             />
                           </div>
                         </div>
@@ -287,7 +309,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                           <input
                             type="text" required name="university" value={formData.university} onChange={handleInputChange}
                             placeholder={translations.formUniversityPlaceholder || 'e.g. University of Malaya'}
-                            className="w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green focus:outline-none transition-all text-xs font-bold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-[10px] placeholder:font-semibold"
+                            className="w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors text-sm font-semibold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs"
                           />
                         </div>
                       </div>
@@ -298,7 +320,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                           <input
                             type="text" required name="courseProgram" value={formData.courseProgram} onChange={handleInputChange}
                             placeholder={translations.formCourseProgramPlaceholder || 'e.g. Computer Science'}
-                            className="w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green focus:outline-none transition-all text-xs font-bold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-[10px] placeholder:font-semibold"
+                            className="w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors text-sm font-semibold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs"
                           />
                         </div>
                         <div className="space-y-1">
@@ -306,7 +328,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                           <input
                             type="text" required name="internshipHours" value={formData.internshipHours} onChange={handleInputChange}
                             placeholder={translations.formInternshipHoursPlaceholder || 'e.g. 300 hours'}
-                            className="w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green focus:outline-none transition-all text-xs font-bold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-[10px] placeholder:font-semibold"
+                            className="w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors text-sm font-semibold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs"
                           />
                         </div>
                       </div>
@@ -316,7 +338,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                           <span className="text-lg">{'\u{1F4C4}'}</span>
                           <h3 className="text-base font-extrabold text-dark-serpent dark:text-white uppercase tracking-wider">{translations.formSectionDocs}</h3>
                         </div>
-                        <div className="relative border border-dashed border-castleton-green/40 bg-white/60 dark:bg-green-900/10 p-4 rounded-xl text-center hover:bg-white dark:hover:bg-dark-serpent transition-all group flex items-center justify-center gap-3 cursor-pointer">
+                        <div className="relative border border-dashed border-paper dark:border-green-800 bg-white/70 dark:bg-green-900/20 p-5 rounded-2xl text-center hover:bg-white/90 dark:hover:bg-green-900/30 transition-colors group flex items-center justify-center gap-3 cursor-pointer">
                           <input type="file" required onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
                           <span className="text-2xl">{'\u{1F4CE}'}</span>
                           <div className="text-left">
@@ -337,7 +359,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                               name="workLocation"
                               value={formData.workLocation}
                               onChange={handleInputChange}
-                              className={`w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 rounded-2xl focus:border-castleton-green focus:outline-none transition-all font-bold text-xs appearance-none cursor-pointer dark:[color-scheme:dark] ${formData.workLocation ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
+                              className={`w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors font-semibold text-sm appearance-none cursor-pointer dark:[color-scheme:dark] ${formData.workLocation ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
                             >
                               <option value="" disabled>{translations.formWorkLocationPlaceholder}</option>
                               {officeLocations.map(location => (
@@ -360,7 +382,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                         <input
                           type="text" required name="firstName" value={formData.firstName} onChange={handleInputChange}
                           placeholder={translations.formFirstNamePlaceholder}
-                          className="w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green focus:outline-none transition-all text-xs font-bold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-[10px] placeholder:font-semibold"
+                          className="w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors text-sm font-semibold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs"
                         />
                       </div>
                       <div className="space-y-1">
@@ -368,7 +390,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                         <input
                           type="text" required name="lastName" value={formData.lastName} onChange={handleInputChange}
                           placeholder={translations.formLastNamePlaceholder}
-                          className="w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green focus:outline-none transition-all text-xs font-bold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-[10px] placeholder:font-semibold"
+                          className="w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors text-sm font-semibold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs"
                         />
                       </div>
                       <div className="space-y-1">
@@ -376,13 +398,13 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                         <input
                           type="email" required name="email" value={formData.email} onChange={handleInputChange}
                           placeholder={translations.formEmailPlaceholder}
-                          className="w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green focus:outline-none transition-all text-xs font-bold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-[10px] placeholder:font-semibold"
+                          className="w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors text-sm font-semibold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs"
                         />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[11px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-85">{translations.formPhone} <span className="text-saffron">*</span></label>
-                        <div className="flex items-center w-full border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 rounded-2xl focus-within:border-castleton-green transition-all overflow-hidden">
-                          <div className="relative h-full border-r border-castleton-green/10 dark:border-green-4/20">
+                        <div className="flex items-center w-full border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] rounded-2xl focus-within:border-castleton-green dark:focus-within:border-saffron transition-colors overflow-hidden">
+                          <div className="relative h-full border-r border-paper dark:border-green-800">
                             <select
                               name="phoneCountryCode" value={formData.phoneCountryCode} onChange={handleInputChange}
                               className="h-full pl-3 pr-8 py-2 bg-transparent text-dark-serpent dark:text-white font-bold text-xs appearance-none focus:outline-none cursor-pointer dark:[color-scheme:dark]"
@@ -415,7 +437,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                         <div className="relative">
                           <select
                             required name="position" value={formData.position} onChange={handleInputChange}
-                            className={`w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 rounded-2xl focus:border-castleton-green focus:outline-none transition-all font-bold text-xs appearance-none cursor-pointer dark:[color-scheme:dark] ${formData.position ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
+                            className={`w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors font-semibold text-sm appearance-none cursor-pointer dark:[color-scheme:dark] ${formData.position ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
                           >
                             <option value="" disabled>{translations.formPositionPlaceholder}</option>
                             {positions.map(p => (
@@ -437,7 +459,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                         <div className="relative">
                           <select
                             required name="experience" value={formData.experience} onChange={handleInputChange}
-                            className={`w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 rounded-2xl focus:border-castleton-green focus:outline-none transition-all font-bold text-xs appearance-none cursor-pointer dark:[color-scheme:dark] ${formData.experience ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
+                            className={`w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors font-semibold text-sm appearance-none cursor-pointer dark:[color-scheme:dark] ${formData.experience ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
                           >
                             <option value="" disabled>{translations.formExpPlaceholder}</option>
                             {experienceLevels.map(level => (
@@ -463,7 +485,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                             value={formData.workLocation}
                             onChange={handleInputChange}
                             disabled={isWorkLocationDisabled}
-                            className={`w-full px-3 py-2 border-2 border-castleton-green/10 bg-paper/10 dark:bg-white/5 rounded-2xl focus:border-castleton-green focus:outline-none transition-all font-bold text-xs appearance-none dark:[color-scheme:dark] ${isWorkLocationDisabled ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'} ${formData.workLocation ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
+                            className={`w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors font-semibold text-sm appearance-none dark:[color-scheme:dark] ${isWorkLocationDisabled ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'} ${formData.workLocation ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
                           >
                             <option value="" disabled>{translations.formWorkLocationPlaceholder}</option>
                             {workLocationOptions.map(location => (
@@ -488,7 +510,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                       <span className="text-lg">{'\u{1F4C4}'}</span>
                       <h3 className="text-base font-extrabold text-dark-serpent dark:text-white uppercase tracking-wider">{translations.formSectionDocs}</h3>
                     </div>
-                    <div className="relative border border-dashed border-castleton-green/40 bg-white/60 dark:bg-green-900/10 p-4 rounded-xl text-center hover:bg-white dark:hover:bg-dark-serpent transition-all group flex items-center justify-center gap-3 cursor-pointer">
+                    <div className="relative border border-dashed border-paper dark:border-green-800 bg-white/70 dark:bg-green-900/20 p-5 rounded-2xl text-center hover:bg-white/90 dark:hover:bg-green-900/30 transition-colors group flex items-center justify-center gap-3 cursor-pointer">
                       <input type="file" required onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
                       <span className="text-2xl">{'\u{1F4CE}'}</span>
                       <div className="text-left">
@@ -523,6 +545,10 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
             </div>
           </>
         )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

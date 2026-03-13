@@ -6,10 +6,11 @@ interface HeroProps {
   translations: TranslationSet;
   onJoinTeam: () => void;
   onNavigate: (view: View) => void;
+  onSignUp: () => void;
   theme: 'light' | 'dark';
 }
 
-const Hero: React.FC<HeroProps> = ({ translations, onJoinTeam, onNavigate, theme }) => {
+const Hero: React.FC<HeroProps> = ({ translations, onJoinTeam, onNavigate, onSignUp, theme }) => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -95,7 +96,8 @@ const Hero: React.FC<HeroProps> = ({ translations, onJoinTeam, onNavigate, theme
             {translations.heroDescription}
           </p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 animate-fade-in-up delay-500"><button 
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up delay-500">
+            <button 
               onClick={() => onNavigate('company')}
               className="w-full sm:w-auto min-w-[260px] px-10 py-5 bg-dark-serpent text-white dark:bg-white/10 dark:text-white backdrop-blur-md rounded-full font-black text-xl hover:bg-castleton-green dark:hover:bg-white/20 hover:-translate-y-1 transition-all shadow-2xl flex items-center justify-center gap-3 group border border-white/10 relative overflow-hidden"
             >
@@ -103,6 +105,13 @@ const Hero: React.FC<HeroProps> = ({ translations, onJoinTeam, onNavigate, theme
                 {translations.heroBtnTertiary} <span className="group-hover:rotate-45 transition-transform">✧</span>
               </span>
               <div className="absolute inset-0 bg-castleton-green/20 translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
+            </button>
+
+            <button
+              onClick={onSignUp}
+              className="w-full sm:w-auto min-w-[260px] px-10 py-5 bg-white/80 text-dark-serpent dark:bg-white/10 dark:text-white backdrop-blur-md rounded-full font-black text-xl hover:bg-saffron hover:text-dark-serpent dark:hover:bg-white/20 hover:-translate-y-1 transition-all shadow-2xl flex items-center justify-center gap-3 border-2 border-paper dark:border-green-900/30"
+            >
+              {translations.heroBtnSignup || 'Sign up'}
             </button>
           </div>
         </div>
