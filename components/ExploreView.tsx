@@ -1,6 +1,7 @@
 ﻿
 import React, { useEffect, useState, useRef } from 'react';
 import { TranslationSet } from '../types';
+import { createInquiry } from '../lib/inquiries';
 
 interface ExploreViewProps {
   onBack: () => void;
@@ -10,6 +11,12 @@ interface ExploreViewProps {
 const ExploreView: React.FC<ExploreViewProps> = ({ onBack, translations }) => {
   const [showInquiryForm, setShowInquiryForm] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [organization, setOrganization] = useState('');
+  const [message, setMessage] = useState('');
   const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -19,18 +26,43 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onBack, translations }) => {
   const handleInquiryClick = () => {
     setShowInquiryForm(true);
     setIsSubmitted(false);
+    setSubmitError(null);
     setTimeout(() => {
       formRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
-    // Smooth scroll to the success message
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 50);
+
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
+
+      await createInquiry({ name, email, organization, message });
+
+      setIsSubmitted(true);
+      setName('');
+      setEmail('');
+      setOrganization('');
+      setMessage('');
+
+      // Smooth scroll to the success message
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Failed to submit inquiry. Please try again.';
+      setSubmitError(message);
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -167,17 +199,26 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onBack, translations }) => {
                 </div>
               ) : (
                 <form className="space-y-6 bg-white dark:bg-dark-serpent p-12 rounded-[56px] shadow-3xl border border-paper dark:border-white/5" onSubmit={handleSubmit}>
+                  {submitError ? (
+                    <div className="p-4 rounded-2xl border-2 border-red-500/30 bg-red-500/5 text-red-700 dark:text-red-200 font-bold text-sm">
+                      {submitError}
+                    </div>
+                  ) : null}
                   <div className="grid md:grid-cols-2 gap-6">
                     <input 
                       type="text" 
                       required
                       placeholder={translations.pContFormNamePlaceholder} 
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
                       className="w-full p-6 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs transition-all font-bold text-sm" 
                     />
                     <input 
                       type="email" 
                       required
                       placeholder={translations.pContFormEmailPlaceholder} 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="w-full p-6 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs transition-all font-bold text-sm" 
                     />
                   </div>
@@ -185,16 +226,23 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onBack, translations }) => {
                     type="text" 
                     required
                     placeholder={translations.pContFormOrgPlaceholder} 
+                    value={organization}
+                    onChange={(e) => setOrganization(e.target.value)}
                     className="w-full p-6 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs transition-all font-bold text-sm" 
                   />
                   <textarea 
                     placeholder={translations.pContFormMsgPlaceholder} 
                     rows={4} 
                     required
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
                     className="w-full p-6 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs transition-all font-bold text-sm"
                   ></textarea>
-                  <button className="w-full py-6 bg-castleton-green text-white font-black text-2xl rounded-2xl hover:bg-green-1 hover:-translate-y-1 transition-all shadow-2xl shadow-castleton-green/20">
-                    {translations.pContFormBtn}
+                  <button
+                    className="w-full py-6 bg-castleton-green text-white font-black text-2xl rounded-2xl hover:bg-green-1 hover:-translate-y-1 transition-all shadow-2xl shadow-castleton-green/20 disabled:opacity-70 disabled:hover:translate-y-0"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Submitting…' : translations.pContFormBtn}
                   </button>
                 </form>
               )}
@@ -207,5 +255,4 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onBack, translations }) => {
 };
 
 export default ExploreView;
-
 

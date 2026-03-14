@@ -15,6 +15,15 @@
         theme: {
           extend: {
             colors: {
+              'ui-base': 'rgb(var(--ui-base) / <alpha-value>)',
+              'ui-surface': 'rgb(var(--ui-surface) / <alpha-value>)',
+              'ui-panel': 'rgb(var(--ui-panel) / <alpha-value>)',
+              'ui-border': 'rgb(var(--ui-border) / <alpha-value>)',
+              'ui-text': 'rgb(var(--ui-text) / <alpha-value>)',
+              'ui-muted': 'rgb(var(--ui-muted) / <alpha-value>)',
+              'ui-secondary': 'rgb(var(--ui-secondary) / <alpha-value>)',
+              'ui-accent': 'rgb(var(--ui-accent) / <alpha-value>)',
+              'ui-accent-contrast': 'rgb(var(--ui-accent-contrast) / <alpha-value>)',
               'dark-serpent': '#133020',
               'castleton-green': '#046241',
               'saffron': '#FFB347',
@@ -75,7 +84,7 @@
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-<body class="bg-white dark:bg-[#0a1612] transition-colors duration-300">
+<body class="bg-ui-base text-ui-text transition-colors duration-300">
     <div id="root"></div>
 <script type="module" src="/index.tsx"></script>
 </body>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Language, AppState, View } from './types';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { TRANSLATIONS } from './constants';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
@@ -10,18 +11,23 @@ import Services from './components/Services';
 import ServicesOfferedSection from './components/ServicesOfferedSection';
 import Impact from './components/Impact';
 import CareersSection from './components/CareersSection';
-import LoginModal from './components/LoginModal';
-import SignUpModal from './components/SignUpModal';
 import CTA from './components/CTA';
 import Footer from './components/Footer';
 import EmploymentModal from './components/EmploymentModal';
 import ProjectView from './components/ProjectView';
 import CompanyView from './components/CompanyView';
+import ExploreView from './components/ExploreView';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import ProfilePage from './pages/ProfilePage';
+import AuthCallbackPage from './pages/AuthCallbackPage';
 
 const App: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [modalPresetPosition, setModalPresetPosition] = useState<string | undefined>(undefined);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isSignUpOpen, setIsSignUpOpen] = useState(false);
   const [appState, setAppState] = useState<AppState>(() => {
     const savedLang = localStorage.getItem('language') as Language || 'en';
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' || 'light';
@@ -29,11 +35,18 @@ const App: React.FC = () => {
       language: savedLang,
       theme: savedTheme,
       isModalOpen: false,
-      currentView: 'home'
+      currentView: 'home',
     };
   });
 
   const t = useMemo(() => TRANSLATIONS[appState.language], [appState.language]);
+
+  const currentView = useMemo<View>(() => {
+    if (location.pathname.startsWith('/company')) return 'company';
+    if (location.pathname.startsWith('/project')) return 'project';
+    if (location.pathname.startsWith('/explore')) return 'explore';
+    return 'home';
+  }, [location.pathname]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', appState.theme);
@@ -58,9 +71,10 @@ const App: React.FC = () => {
   }, []);
 
   const setView = useCallback((view: View) => {
-    setAppState(prev => ({ ...prev, currentView: view }));
+    const path = view === 'home' ? '/' : `/${view}`;
+    navigate(path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+  }, [navigate]);
 
   const toggleModal = useCallback((open: boolean, presetPosition?: string) => {
     setAppState(prev => ({ ...prev, isModalOpen: open }));
@@ -79,12 +93,12 @@ const App: React.FC = () => {
 
   const handleNavClick = (sectionId: string) => {
     if (sectionId === 'login') {
-      setIsLoginOpen(true);
+      navigate('/login');
       return;
     }
 
     // Check if we are in the portal view and the clicked link is a portal section
-    const isInternalPortalNav = appState.currentView === 'company' && [
+    const isInternalPortalNav = location.pathname.startsWith('/company') && [
       'portal-home', 'portal-process', 'portal-tools', 'portal-engagement', 'portal-ethics', 'portal-pricing', 'portal-start'
     ].includes(sectionId);
     
@@ -95,14 +109,9 @@ const App: React.FC = () => {
     }
 
     // If we are not in home view and it's not a portal nav, switch to home
-    if (appState.currentView !== 'home') {
-      setAppState(prev => ({ ...prev, currentView: 'home' }));
-      setTimeout(() => {
-        // Handle target mapping for home page
-        const targetId = sectionId === 'careers' ? 'careers-segment' : sectionId;
-        const el = document.getElementById(targetId);
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+    if (location.pathname !== '/') {
+      const targetId = sectionId === 'careers' ? 'careers-segment' : sectionId;
+      navigate('/', { state: { scrollTo: targetId } });
     } else {
       // We are in home view, just scroll
       const targetId = sectionId === 'careers' ? 'careers-segment' : sectionId;
@@ -111,53 +120,78 @@ const App: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (location.pathname !== '/') return;
+    const state = location.state as unknown;
+    if (!state || typeof state !== 'object') return;
+    const scrollTo = (state as { scrollTo?: unknown }).scrollTo;
+    if (typeof scrollTo !== 'string' || !scrollTo) return;
+
+    window.setTimeout(() => {
+      const el = document.getElementById(scrollTo);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      navigate('.', { replace: true, state: null });
+    }, 50);
+  }, [location.pathname, location.state, navigate]);
+
   return (
-    <div className="min-h-screen font-manrope selection:bg-saffron selection:text-dark-serpent bg-white dark:bg-[#0a1612] transition-colors duration-300">
+    <div className="min-h-screen font-manrope selection:bg-ui-accent selection:text-ui-accent-contrast bg-ui-base text-ui-text transition-colors duration-300">
       <Navbar 
         currentLang={appState.language} 
         onLangChange={setLanguage} 
         theme={appState.theme} 
         onThemeToggle={toggleTheme}
         onJoinTeam={() => toggleModal(true)}
-        onLogin={() => setIsLoginOpen(true)}
         translations={t}
-        currentView={appState.currentView}
+        currentView={currentView}
         onNavigate={setView}
         onNavClick={handleNavClick}
       />
       
       <main>
-        {appState.currentView === 'home' && (
-          <>
-            <Hero 
-              translations={t} 
-              onJoinTeam={() => toggleModal(true)} 
-              onNavigate={setView}
-              onSignUp={() => setIsSignUpOpen(true)}
-              theme={appState.theme}
-            />
-            <Stats translations={t} />
-            <Features translations={t} />
-            <CompanyBackground translations={t} />
-            <ServicesOfferedSection translations={t} onPortalClick={() => setView('company')} />
-            <Services translations={t} />
-            <Impact translations={t} />
-            <CareersSection translations={t} onJoinTeam={(positionValue?: string) => toggleModal(true, positionValue)} />
-            <CTA translations={t} onPortalClick={() => setView('company')} />
-          </>
-        )}
-
-        {appState.currentView === 'project' && (
-          <ProjectView onBack={() => setView('home')} translations={t} />
-        )}
-
-        {appState.currentView === 'company' && (
-          <CompanyView 
-            onBack={() => setView('home')} 
-            translations={t} 
-            onJoinTeam={() => toggleModal(true)} 
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <>
+                <Hero
+                  translations={t}
+                  onJoinTeam={() => toggleModal(true)}
+                  onNavigate={setView}
+                  onLogin={() => navigate('/login')}
+                  onSignUp={() => navigate('/signup')}
+                  theme={appState.theme}
+                />
+                <Stats translations={t} />
+                <Features translations={t} />
+                <CompanyBackground translations={t} />
+                <ServicesOfferedSection translations={t} onPortalClick={() => setView('company')} />
+                <Services translations={t} />
+                <Impact translations={t} />
+                <CareersSection translations={t} onJoinTeam={(positionValue?: string) => toggleModal(true, positionValue)} />
+                <CTA translations={t} onPortalClick={() => setView('company')} />
+              </>
+            }
           />
-        )}
+          <Route path="/project" element={<ProjectView onBack={() => setView('home')} translations={t} />} />
+          <Route
+            path="/company"
+            element={<CompanyView onBack={() => setView('home')} translations={t} onJoinTeam={() => toggleModal(true)} />}
+          />
+          <Route path="/explore" element={<ExploreView onBack={() => setView('home')} translations={t} />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
 
       <Footer
@@ -175,9 +209,6 @@ const App: React.FC = () => {
           presetPosition={modalPresetPosition}
         />
       )}
-
-      <LoginModal open={isLoginOpen} onClose={() => setIsLoginOpen(false)} translations={t} />
-      <SignUpModal open={isSignUpOpen} onClose={() => setIsSignUpOpen(false)} translations={t} />
     </div>
   );
 };

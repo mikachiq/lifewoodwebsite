@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { TranslationSet, View } from '../types';
 import NeuralBackground from './NeuralBackground';
+import { useAuth } from './AuthProvider';
 
 interface HeroProps {
   translations: TranslationSet;
   onJoinTeam: () => void;
   onNavigate: (view: View) => void;
+  onLogin: () => void;
   onSignUp: () => void;
   theme: 'light' | 'dark';
 }
 
-const Hero: React.FC<HeroProps> = ({ translations, onJoinTeam, onNavigate, onSignUp, theme }) => {
+const Hero: React.FC<HeroProps> = ({ translations, onJoinTeam, onNavigate, onLogin, onSignUp, theme }) => {
   const [mounted, setMounted] = useState(false);
+  const { loading: authLoading, user } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -68,7 +71,7 @@ const Hero: React.FC<HeroProps> = ({ translations, onJoinTeam, onNavigate, onSig
   const marqueeCards = [...cards, ...cards, ...cards];
 
   return (
-    <section id="home" className="relative min-h-screen pt-32 md:pt-44 pb-20 overflow-hidden flex flex-col items-center bg-gradient-to-br from-paper/40 via-white to-white dark:from-[#05100a] dark:via-[#0a1612] dark:to-[#020805]">
+    <section id="home" className="relative min-h-screen pt-32 md:pt-44 pb-20 overflow-hidden flex flex-col items-center bg-gradient-to-br from-ui-surface/40 via-ui-base to-ui-base dark:from-ui-base dark:via-ui-base dark:to-ui-base">
       {/* Neural Network Background */}
       <NeuralBackground theme={theme} />
 
@@ -96,23 +99,36 @@ const Hero: React.FC<HeroProps> = ({ translations, onJoinTeam, onNavigate, onSig
             {translations.heroDescription}
           </p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up delay-500">
-            <button 
+          <div className="flex items-center justify-center gap-4 mt-8 flex-wrap animate-fade-in-up delay-500">
+            <button
               onClick={() => onNavigate('company')}
-              className="w-full sm:w-auto min-w-[260px] px-10 py-5 bg-dark-serpent text-white dark:bg-white/10 dark:text-white backdrop-blur-md rounded-full font-black text-xl hover:bg-castleton-green dark:hover:bg-white/20 hover:-translate-y-1 transition-all shadow-2xl flex items-center justify-center gap-3 group border border-white/10 relative overflow-hidden"
+              className="px-8 py-4 bg-[#133020] text-white rounded-full font-semibold hover:opacity-95 hover:-translate-y-0.5 transition-all shadow-2xl flex items-center justify-center gap-3 group"
             >
-              <span className="relative z-10 flex items-center gap-3">
-                {translations.heroBtnTertiary} <span className="group-hover:rotate-45 transition-transform">✧</span>
-              </span>
-              <div className="absolute inset-0 bg-castleton-green/20 translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
+              {translations.heroBtnTertiary} <span className="group-hover:rotate-45 transition-transform">✧</span>
             </button>
 
-            <button
-              onClick={onSignUp}
-              className="w-full sm:w-auto min-w-[260px] px-10 py-5 bg-white/80 text-dark-serpent dark:bg-white/10 dark:text-white backdrop-blur-md rounded-full font-black text-xl hover:bg-saffron hover:text-dark-serpent dark:hover:bg-white/20 hover:-translate-y-1 transition-all shadow-2xl flex items-center justify-center gap-3 border-2 border-paper dark:border-green-900/30"
-            >
-              {translations.heroBtnSignup || 'Sign up'}
-            </button>
+            {!authLoading && !user ? (
+              <div
+                className="flex rounded-full overflow-hidden shadow-md border border-[#133020]/10"
+                role="group"
+                aria-label="Authentication"
+              >
+                <button
+                  type="button"
+                  onClick={onLogin}
+                  className="bg-[#133020] text-white px-10 py-4 text-base font-semibold hover:bg-[#0f261a] transition-colors"
+                >
+                  Log In
+                </button>
+                <button
+                  type="button"
+                  onClick={onSignUp}
+                  className="bg-white text-[#133020] px-10 py-4 text-base font-semibold border-l border-[#133020]/20 hover:bg-paper transition-colors"
+                >
+                  Sign Up
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -124,7 +140,7 @@ const Hero: React.FC<HeroProps> = ({ translations, onJoinTeam, onNavigate, onSig
           {marqueeCards.map((c, i) => (
             <div 
               key={i} 
-              className="inline-block w-80 p-8 bg-white/80 dark:bg-[#133020]/40 backdrop-blur-md rounded-[40px] shadow-xl border border-paper dark:border-green-900/30 flex flex-col gap-6 hover:scale-105 transition-transform duration-300 group"
+              className="inline-block w-80 p-8 bg-ui-base/80 dark:bg-ui-surface/40 backdrop-blur-md rounded-[40px] shadow-xl border border-ui-border/60 dark:border-ui-border/40 flex flex-col gap-6 hover:scale-105 transition-transform duration-300 group"
             >
               <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${c.color} flex items-center justify-center text-3xl shadow-lg group-hover:rotate-12 transition-transform duration-500`}>
                 {c.icon}

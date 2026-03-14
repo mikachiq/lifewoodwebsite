@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { TranslationSet } from '../types';
+import { signUpWithEmailPassword } from '../lib/auth';
 
 interface SignUpModalProps {
   open: boolean;
@@ -12,8 +13,9 @@ type FormState = {
   email: string;
   password: string;
   confirmPassword: string;
-  status: 'idle' | 'success' | 'error';
+  status: 'idle' | 'submitting' | 'success' | 'error';
   error?: string;
+  successNote?: string;
 };
 
 const SignUpModal: React.FC<SignUpModalProps> = ({ open, onClose, translations }) => {
@@ -58,7 +60,7 @@ const SignUpModal: React.FC<SignUpModalProps> = ({ open, onClose, translations }
     setForm(initialState);
   }, [open, initialState]);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const nameOk = form.name.trim().length > 0;
@@ -76,7 +78,33 @@ const SignUpModal: React.FC<SignUpModalProps> = ({ open, onClose, translations }
       return;
     }
 
-    setForm(prev => ({ ...prev, status: 'success', error: undefined }));
+    try {
+      setForm(prev => ({ ...prev, status: 'submitting', error: undefined, successNote: undefined }));
+
+      const result = await signUpWithEmailPassword({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        password: form.password,
+      });
+
+      const successNote = result.emailConfirmationLikely
+        ? translations.signupSuccessConfirmEmail ||
+          'Check your email for a confirmation link to finish creating your account.'
+        : translations.signupSuccessSignedIn || 'Account created.';
+
+      setForm(prev => ({
+        ...prev,
+        status: 'success',
+        error: undefined,
+        successNote,
+        password: '',
+        confirmPassword: '',
+      }));
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : translations.signupErrorGeneric || 'Sign up failed. Please try again.';
+      setForm(prev => ({ ...prev, status: 'error', error: message }));
+    }
   };
 
   const Field = ({
@@ -209,21 +237,23 @@ const SignUpModal: React.FC<SignUpModalProps> = ({ open, onClose, translations }
 
                   {form.status === 'success' && (
                     <div className="px-4 py-3 rounded-2xl bg-castleton-green/10 dark:bg-saffron/10 border border-current/20 text-castleton-green dark:text-saffron text-sm font-bold">
-                      {translations.signupSuccessMsg ||
-                        'Account captured (demo). Hook this up to your auth backend when ready.'}
+                      {form.successNote ||
+                        translations.signupSuccessMsg ||
+                        'Account created. Check your email if confirmation is required.'}
                     </div>
                   )}
 
                   <button
                     type="submit"
-                    className="w-full mt-2 px-8 py-4 rounded-full font-black text-lg bg-saffron text-dark-serpent hover:bg-earth-yellow transition-all shadow-xl hover:-translate-y-0.5"
+                    disabled={form.status === 'submitting'}
+                    className="w-full mt-2 px-8 py-4 rounded-full font-black text-lg bg-saffron text-dark-serpent hover:bg-earth-yellow transition-all shadow-xl hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0"
                   >
-                    {submitLabel}
+                    {form.status === 'submitting' ? translations.signupSubmitting || 'Creating…' : submitLabel}
                   </button>
 
                   <p className="text-[11px] leading-relaxed font-semibold text-green-1/80 dark:text-green-4/70">
                     {translations.signupDisclaimer ||
-                      'Note: This is a front-end form only. Add your auth API to create accounts.'}
+                      'Accounts are created via Supabase Auth. If email confirmation is enabled, you’ll need to confirm via email.'}
                   </p>
                 </form>
               </div>
@@ -236,4 +266,3 @@ const SignUpModal: React.FC<SignUpModalProps> = ({ open, onClose, translations }
 };
 
 export default SignUpModal;
-

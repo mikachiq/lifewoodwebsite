@@ -1,0 +1,34 @@
+:root {
+  /* 60 / 30 / 10 color tokens (Light) */
+  --ui-base: 255 255 255; /* 60%: primary background */
+  --ui-surface: 245 238 219; /* 30%: secondary surfaces (paper) */
+  --ui-panel: 255 255 255;
+  --ui-border: 229 221 200;
+  --ui-text: 19 48 32;
+  --ui-muted: 65 114 86;
+  --ui-secondary: 4 98 65; /* supporting brand color */
+  --ui-accent: 255 179 71; /* 10%: accent */
+  --ui-accent-contrast: 19 48 32;
+}
+
+.dark {
+  /* 60 / 30 / 10 color tokens (Dark) */
+  --ui-base: 10 22 18; /* deep background */
+  --ui-surface: 19 48 32; /* elevated surfaces */
+  --ui-panel: 19 48 32;
+  --ui-border: 3 78 52;
+  --ui-text: 249 247 247;
+  --ui-muted: 156 175 164;
+  --ui-secondary: 4 98 65;
+  --ui-accent: 255 179 71;
+  --ui-accent-contrast: 19 48 32;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body, input, textarea, select, button {
+  font-family: 'Manrope', sans-serif;
+}
+
