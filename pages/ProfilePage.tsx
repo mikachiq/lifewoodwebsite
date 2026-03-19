@@ -61,15 +61,29 @@ export default function ProfilePage() {
         setLoading(true);
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, username, bio, avatar_url, updated_at')
+          .select(`
+            id,
+            username,
+            bio,
+            avatar_url,
+            is_admin,
+            updated_at
+          `)
           .eq('id', user.id)
           .single();
 
         if (error && error.code === 'PGRST116') {
-          const { data: created, error: insertError } = await supabase
+        const { data: created, error: insertError } = await supabase
             .from('profiles')
-            .insert({ id: user.id, username: user.user_metadata?.username ?? null, bio: null, avatar_url: null })
-            .select('id, username, bio, avatar_url, updated_at')
+            .insert({ id: user.id, username: user.user_metadata?.username ?? null, bio: null, avatar_url: null, is_admin: false })
+            .select(`
+              id,
+              username,
+              bio,
+              avatar_url,
+              is_admin,
+              updated_at
+            `)
             .single();
           if (insertError) throw insertError;
           setProfile(created);

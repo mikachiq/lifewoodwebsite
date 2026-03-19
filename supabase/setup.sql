@@ -1,4 +1,4 @@
--- Lifewood website: Supabase setup (profiles + avatars storage)
+-- Lifewood website: Supabase setup (profiles + avatars storage + admin)
 -- Run in Supabase SQL editor.
 
 -- 1) Profiles table
@@ -7,26 +7,38 @@ create table if not exists public.profiles (
   username text,
   bio text,
   avatar_url text,
+  is_admin boolean DEFAULT false,
   updated_at timestamptz not null default now()
 );
 
+-- Add is_admin column to existing profiles table (safe upgrade)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name='profiles' AND column_name='is_admin'
+  ) THEN
+    ALTER TABLE public.profiles ADD COLUMN is_admin boolean DEFAULT false;
+  END IF;
+END $$;
+
 alter table public.profiles enable row level security;
 
-create policy "profiles_select_own"
+create policy "profiles_select_own_or_admin"
 on public.profiles
 for select
-using (auth.uid() = id);
+using (auth.uid() = id OR is_admin = true);
 
 create policy "profiles_insert_own"
 on public.profiles
 for insert
 with check (auth.uid() = id);
 
-create policy "profiles_update_own"
+create policy "profiles_update_own_or_admin"
 on public.profiles
 for update
-using (auth.uid() = id)
-with check (auth.uid() = id);
+using (auth.uid() = id OR (is_admin = true AND auth.uid() != id))
+with check (auth.uid() = id OR is_admin = true);
 
 -- Keep updated_at current
 create or replace function public.set_updated_at()
@@ -103,4 +115,32 @@ create policy "avatars_delete_own"
 on storage.objects
 for delete
 using (bucket_id = 'avatars' and auth.uid() = owner);
+
+-- 🔥 ADMIN USER CREATION (Run ONCE after table setup)
+-- ⚠️  Copy the generated ID to the UPDATE below!
+INSERT INTO auth.users (
+  instance_id, 
+  id, 
+  aud, 
+  role, 
+  email, 
+  encrypted_password, 
+  email_confirmed_at, 
+  raw_app_meta_data, 
+  raw_user_meta_data
+) VALUES (
+  '00000000-0000-0000-0000-000000000000',
+  gen_random_uuid(),
+  'authenticated',
+  'authenticated',
+  'admin@lifewood.local',
+  -- Password: "admin" (hashed with Supabase crypt)
+  '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 
+  NOW(),
+  '{}',
+  '{"username": "admin"}'
+) RETURNING id;
+
+-- ⚠️ REPLACE '00000000-...' BELOW WITH ID FROM ABOVE:
+-- UPDATE profiles SET is_admin = true WHERE id = 'PASTE_USER_ID_HERE';
 

@@ -29,7 +29,7 @@ const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const navigate = useNavigate();
   const { loading: authLoading, user, signOut } = useAuth();
-  const { loading: profileLoading, avatarSrc, displayName } = useProfile();
+  const { loading: profileLoading, avatarSrc, displayName, isAdmin } = useProfile();
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
@@ -111,9 +111,9 @@ const Navbar: React.FC<NavbarProps> = ({
     if (!user) return null;
 
     return (
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 min-w-0">
         {greeting ? (
-          <div className="hidden lg:block text-xs font-bold text-green-1 dark:text-green-4/80 whitespace-nowrap">
+          <div className="hidden xl:block text-xs font-bold text-green-1 dark:text-green-4/80 whitespace-nowrap max-w-[260px] truncate">
             {greeting}
           </div>
         ) : null}
@@ -153,6 +153,19 @@ const Navbar: React.FC<NavbarProps> = ({
                   Account Settings
                 </button>
                 <div className="h-px my-1 bg-castleton-green/10 dark:bg-green-800" />
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      navigate('/admin');
+                    }}
+                    className="w-full text-left px-4 py-3 rounded-2xl font-black text-sm text-saffron bg-saffron/10 hover:bg-saffron/20 transition-colors"
+                  >
+                    🛠️ Admin Dashboard
+                  </button>
+                )}
+                <div className="h-px my-1 bg-castleton-green/10 dark:bg-green-800" />
                 <button
                   type="button"
                   onClick={() => {
@@ -177,8 +190,8 @@ const Navbar: React.FC<NavbarProps> = ({
         ? 'bg-ui-base/95 backdrop-blur-xl shadow-lg border-ui-border/60' 
         : 'bg-ui-base/80 backdrop-blur-md border-transparent'
     }`}>
-      <div className="max-w-[1400px] mx-auto px-6 md:px-12 flex items-center justify-between h-full gap-0">
-        <button onClick={handleLogoClick} className="min-w-[220px] lg:min-w-[300px] flex items-center gap-2 group">
+      <div className="max-w-[1560px] mx-auto px-6 md:px-12 flex items-center justify-between h-full gap-0 relative">
+        <button onClick={handleLogoClick} className="flex items-center gap-2 group shrink-0 z-10">
           <div className="relative">
             <img 
               src="/assets/logo.png" 
@@ -191,7 +204,7 @@ const Navbar: React.FC<NavbarProps> = ({
           </div>
         </button>
 
-        <ul className={`hidden lg:flex flex-1 items-center justify-center gap-8 font-bold text-[0.9rem] text-ui-text`}>
+        <ul className="hidden lg:flex items-center gap-6 xl:gap-8 font-bold text-[0.9rem] text-ui-text absolute left-1/2 -translate-x-1/2">
           {isPortal ? (
             <>
               <li><button onClick={() => onNavClick('portal-home')} className="hover:text-ui-secondary transition-colors whitespace-nowrap">{translations.portalNavHome}</button></li>
@@ -214,7 +227,7 @@ const Navbar: React.FC<NavbarProps> = ({
           )}
         </ul>
 
-        <div className="min-w-[220px] lg:min-w-[300px] flex items-center justify-end gap-3 shrink-0">
+        <div className="flex items-center justify-end gap-3 shrink-0 z-10">
 
           <button
             onClick={() => onNavClick(isPortal ? 'portal-start' : 'contact')}
@@ -319,6 +332,19 @@ const Navbar: React.FC<NavbarProps> = ({
                     Account Settings
                   </button>
                 </li>
+                {isAdmin && (
+                  <li>
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        navigate('/admin');
+                      }}
+                      className="w-full text-left px-6 py-4 rounded-2xl bg-saffron/10 border-2 border-saffron/30 font-black text-saffron"
+                    >
+                      🛠️ Admin Dashboard
+                    </button>
+                  </li>
+                )}
                 <li>
                   <button
                     onClick={() => {

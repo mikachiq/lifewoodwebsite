@@ -16,3 +16,12 @@ export interface AppState {
   isModalOpen: boolean;
   currentView: View;
 }
+
+export interface Profile {
+  id: string;
+  username: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  is_admin: boolean;
+  updated_at: string | null;
+}

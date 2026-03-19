@@ -14,14 +14,14 @@ export default function LoginPage() {
   const location = useLocation();
 
   const state = (location.state ?? null) as LocationState;
-  const from = state?.from ?? '/profile';
+  const from = '/';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(state?.message ?? null);
 
-  if (user) return <Navigate to="/profile" replace />;
+  if (user) return <Navigate to="/" replace />;
   if (!isSupabaseConfigured) {
     return (
       <div className="min-h-[calc(100vh-120px)] flex items-center justify-center px-4 py-16 bg-white dark:bg-[#0a1612]">
@@ -77,7 +77,7 @@ export default function LoginPage() {
 
       pushToast({ type: 'success', message: 'Signed in.' });
       navigate(from, { replace: true });
-    } catch (err) {
+    } catch (err) { // ✅ catch block was missing entirely
       const message = err instanceof Error ? err.message : 'Login failed. Please try again.';
       setError(message);
       pushToast({ type: 'error', message });

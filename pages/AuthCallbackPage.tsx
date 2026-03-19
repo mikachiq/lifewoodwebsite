@@ -26,7 +26,7 @@ export default function AuthCallbackPage() {
         const { data } = await supabase.auth.getSession();
         if (data.session?.user) {
           pushToast({ type: 'success', message: 'Email verified.' });
-          navigate('/profile', { replace: true });
+          navigate('/', { replace: true });
           return;
         }
 

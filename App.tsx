@@ -22,6 +22,8 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import ProfilePage from './pages/ProfilePage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
+import AdminProtectedRoute from './components/AdminProtectedRoute';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -188,6 +190,14 @@ const App: React.FC = () => {
               <ProtectedRoute>
                 <ProfilePage />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminProtectedRoute>
+                <AdminDashboardPage />
+              </AdminProtectedRoute>
             }
           />
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -73,7 +73,7 @@ export default function SignupPage() {
 
   const errorFor = (field: Field) => (touched[field] ? validate[field] : undefined);
 
-  if (user) return <Navigate to="/profile" replace />;
+  if (user) return <Navigate to="/" replace />;
 
   if (!isSupabaseConfigured) {
     return (

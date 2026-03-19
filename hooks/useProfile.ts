@@ -2,10 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../components/AuthProvider';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
+// Local type extended from types.ts Profile
 export type Profile = {
   id: string;
   username: string | null;
+  bio: string | null;
   avatar_url: string | null;
+  is_admin: boolean;
+  updated_at: string | null;
 };
 
 type UseProfileResult = {
@@ -13,6 +17,7 @@ type UseProfileResult = {
   profile: Profile | null;
   avatarSrc: string | null;
   displayName: string | null;
+  isAdmin: boolean;
 };
 
 function emailPrefix(email: string | null | undefined) {
@@ -47,7 +52,14 @@ export function useProfile(): UseProfileResult {
         setLoading(true);
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, username, avatar_url')
+          .select(`
+            id,
+            username,
+            bio,
+            avatar_url,
+            is_admin,
+            updated_at
+          `)
           .eq('id', user.id)
           .single();
 
@@ -87,6 +99,9 @@ export function useProfile(): UseProfileResult {
     return (profile?.username?.trim() || emailPrefix(user.email)) ?? null;
   }, [profile?.username, user]);
 
-  return { loading, profile, avatarSrc, displayName };
+  const isAdmin = profile?.is_admin ?? false;
+
+  return { loading, profile, avatarSrc, displayName, isAdmin };
 }
+
 
