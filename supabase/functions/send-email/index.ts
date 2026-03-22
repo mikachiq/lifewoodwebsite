@@ -95,7 +95,7 @@ serve(async (req) => {
   }
 
   try {
-    const { to, name, subject, body, badge, meta } = await req.json();
+    const { to, name, subject, body, badge, meta, context, inquiry_id } = await req.json();
 
     if (!to || !body) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -104,29 +104,36 @@ serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get('RESEND_API_KEY');
     const html = buildHtml(name || to, body, badge || 'Message from Lifewood', meta || []);
 
-    const res = await fetch('https://api.resend.com/emails', {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    const insertRes = await fetch(`${supabaseUrl}/rest/v1/simulated_emails`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${serviceRoleKey}`,
         'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
       },
       body: JSON.stringify({
-        from: `Lifewood <${Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev'}>`,
-        to: [to],
+        to,
+        from: 'noreply@lifewoodph.com',
         subject: subject || 'A message from Lifewood',
+        body,
         html,
+        context: context || null,
+        inquiry_id: inquiry_id || null,
       }),
     });
 
-    const data = await res.json();
-    console.log('Resend status:', res.status, JSON.stringify(data));
+    const data = await insertRes.json();
+    console.log('Simulated email saved:', insertRes.status, JSON.stringify(data));
 
-    if (!res.ok) {
+    if (!insertRes.ok) {
       return new Response(JSON.stringify({ error: data }), {
-        status: res.status,
+        status: insertRes.status,
         headers: { ...CORS, 'Content-Type': 'application/json' },
       });
     }

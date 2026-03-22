@@ -12,7 +12,7 @@ let cachedDashboardInquiries: Inquiry[] | null = null;
 
 const STATUS_OPTIONS = ['new', 'contacted', 'closed'] as const;
 type Status = typeof STATUS_OPTIONS[number];
-type NavSection = 'overview' | 'contacts' | 'applicants' | 'projects' | 'posts';
+type NavSection = 'overview' | 'contacts' | 'applicants' | 'projects' | 'posts' | 'outbox';
 type AdminNotif = {
   id: string;
   type: string;
@@ -144,6 +144,15 @@ const NAV_ITEMS: { key: NavSection; label: string; icon: React.ReactNode; href?:
       </svg>
     ),
   },
+  {
+    key: 'outbox',
+    label: 'Outbox',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+        <path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4 20-7z"/>
+      </svg>
+    ),
+  },
 ];
 
 const STAT_CARDS = (stats: InquiryStats | null) => [
@@ -256,6 +265,9 @@ export default function AdminDashboardPage() {
   const [expandedMessageIds, setExpandedMessageIds] = useState<string[]>([]);
   const [emailBody, setEmailBody] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [outboxEmails, setOutboxEmails] = useState<{ id: string; to: string; subject: string | null; body: string | null; context: string | null; sent_at: string }[]>([]);
+  const [outboxLoading, setOutboxLoading] = useState(false);
+  const [outboxPreview, setOutboxPreview] = useState<{ html: string; subject: string } | null>(null);
   const [adminNotifs, setAdminNotifs] = useState<AdminNotif[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const { confirm, modal: confirmModal } = useConfirm();
@@ -316,6 +328,21 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     setSelectedInquiryIds([]);
     setExpandedMessageIds([]);
+  }, [activeSection, refreshKey]);
+
+  useEffect(() => {
+    if (activeSection !== 'outbox') return;
+    const supabase = getSupabase();
+    setOutboxLoading(true);
+    supabase
+      .from('simulated_emails')
+      .select('id, to, subject, body, context, sent_at')
+      .order('sent_at', { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        setOutboxEmails(data || []);
+        setOutboxLoading(false);
+      });
   }, [activeSection, refreshKey]);
 
   useEffect(() => {
@@ -411,6 +438,7 @@ export default function AdminDashboardPage() {
     applicants: 'Applicants',
     projects: 'Project Requests',
     posts: 'Posts',
+    outbox: 'Sent Emails',
   };
   const sectionSub: Record<NavSection, string> = {
     overview: 'Overview of all inquiries and submission activity.',
@@ -418,6 +446,7 @@ export default function AdminDashboardPage() {
     applicants: 'Career form submissions from applicants.',
     projects: 'Project client requests submitted through the Portal.',
     posts: 'Manage company news and announcements.',
+    outbox: 'Simulated outbox — emails stored here instead of being delivered.',
   };
   const unread = adminNotifs.filter(n => !n.read).length;
 
@@ -679,6 +708,64 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
+          {/* ── Outbox section ── */}
+          {activeSection === 'outbox' && (
+            <div className="bg-white rounded-2xl border border-[#e8e3da] shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#f0ebe2] flex items-center justify-between">
+                <h2 className="font-black text-[#1a2e1a] text-base">Sent Emails</h2>
+                <span className="text-xs font-bold text-[#8a9a8a] bg-[#f2ece0] px-3 py-1 rounded-full">
+                  {outboxLoading ? '…' : outboxEmails.length} total
+                </span>
+              </div>
+              {outboxLoading ? (
+                <div className="py-12 text-center text-[#8a9a8a] font-bold text-sm">Loading…</div>
+              ) : outboxEmails.length === 0 ? (
+                <div className="py-12 text-center text-[#8a9a8a] font-bold text-sm">No simulated emails yet.</div>
+              ) : (
+                <div className="divide-y divide-[#f0ebe2]">
+                  {outboxEmails.map(email => (
+                    <div key={email.id} className="px-6 py-4 flex items-start gap-4 hover:bg-[#faf8f4] transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-[#e8f0eb] flex items-center justify-center shrink-0 mt-0.5">
+                        <svg className="w-4 h-4 text-[#1a3a2a]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4 20-7z"/>
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="text-sm font-black text-[#1a2e1a] truncate">{email.to}</span>
+                          {email.context && (
+                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-[#f2ece0] text-[#6a7a6a]">
+                              {email.context}
+                            </span>
+                          )}
+                          <span className="text-[11px] text-[#8a9a8a] ml-auto shrink-0">
+                            {new Date(email.sent_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-xs font-semibold text-[#4a6a5a] truncate mb-1">{email.subject || '(no subject)'}</p>
+                        <p className="text-xs text-[#8a9a8a] line-clamp-2">{email.body}</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const supabase = getSupabase();
+                          const { data } = await supabase
+                            .from('simulated_emails')
+                            .select('html, subject')
+                            .eq('id', email.id)
+                            .single();
+                          if (data) setOutboxPreview({ html: data.html, subject: data.subject });
+                        }}
+                        className="shrink-0 text-xs font-bold text-[#1a3a2a] hover:underline"
+                      >
+                        Preview
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Stats cards — only on overview */}
           {activeSection === 'overview' && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
@@ -697,8 +784,8 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
-          {/* Table */}
-          <div className="bg-white rounded-2xl border border-[#e8e3da] shadow-sm overflow-hidden">
+          {/* Table — hidden on outbox */}
+          {activeSection !== 'outbox' && (<div className="bg-white rounded-2xl border border-[#e8e3da] shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-[#f0ebe2] flex items-center justify-between">
               <h2 className="font-black text-[#1a2e1a] text-base">
                 {activeSection === 'overview' ? 'Recent Submissions' : sectionTitle[activeSection]}
@@ -945,7 +1032,7 @@ export default function AdminDashboardPage() {
                 </table>
               </div>
             )}
-          </div>
+          </div>)}
 
         </div>
       </main>
@@ -1143,6 +1230,35 @@ export default function AdminDashboardPage() {
         </div>
       )}
       {confirmModal}
+
+      {/* ── Outbox Preview Modal ── */}
+      {outboxPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3">
+          <div className="w-full max-w-2xl rounded-[28px] border border-white/65 bg-[#f7f2e8]/35 p-1.5 shadow-[0_28px_80px_rgba(19,41,30,0.24)] backdrop-blur-md">
+            <div className="overflow-hidden rounded-[24px] bg-white shadow-[0_10px_30px_rgba(19,41,30,0.08)]">
+              <div className="flex items-center justify-between border-b border-[#ece3d4] bg-[linear-gradient(135deg,rgba(247,242,232,0.92),rgba(255,255,255,0.98))] px-6 py-4">
+                <div>
+                  <span className="inline-flex items-center rounded-full border border-[#e4d7c2] bg-[#fff9ef] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#8a7d63]">
+                    Email Preview
+                  </span>
+                  <h3 className="mt-2 text-[1rem] font-black text-[#193728]">{outboxPreview.subject}</h3>
+                </div>
+                <button onClick={() => setOutboxPreview(null)} className="w-8 h-8 rounded-full bg-[#f2ece0] flex items-center justify-center text-[#1a3a2a] hover:bg-[#e8e0d0] transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <div className="overflow-y-auto max-h-[70vh]">
+                <iframe
+                  srcDoc={outboxPreview.html}
+                  className="w-full border-0"
+                  style={{ height: '600px' }}
+                  title="Email preview"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
