@@ -463,7 +463,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                           <div className="relative h-full border-r border-paper dark:border-green-800">
                             <select
                               name="phoneCountryCode" value={formData.phoneCountryCode} onChange={handleInputChange}
-                              className="h-full pl-3 pr-8 py-2 bg-transparent text-dark-serpent dark:text-white font-bold text-xs appearance-none focus:outline-none cursor-pointer dark:[color-scheme:dark]"
+                              className="h-full pl-3 pr-8 py-3 bg-transparent text-dark-serpent dark:text-white font-semibold text-sm appearance-none focus:outline-none cursor-pointer dark:[color-scheme:dark]"
                             >
                               <option value="+60" className="text-dark-serpent bg-white">MY +60</option>
                               <option value="+63" className="text-dark-serpent bg-white">PH +63</option>
@@ -482,7 +482,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                           <input
                             type="tel" required name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange}
                             placeholder={translations.formPhonePlaceholder}
-                            className="flex-1 px-3 py-2 bg-transparent text-dark-serpent dark:text-white focus:outline-none text-xs font-bold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-[10px] placeholder:font-semibold"
+                            className="flex-1 px-4 py-3 bg-transparent text-dark-serpent dark:text-white focus:outline-none text-sm font-semibold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs"
                           />
                         </div>
                       </div>

@@ -382,7 +382,6 @@ const Navbar: React.FC<NavbarProps> = ({
               <li><button onClick={() => onNavClick('portal-tools')} className="hover:text-ui-secondary transition-colors whitespace-nowrap">{translations.portalNavOffers}</button></li>
               <li><button onClick={() => onNavClick('portal-engagement')} className="hover:text-ui-secondary transition-colors whitespace-nowrap">{translations.portalNavResults}</button></li>
               <li><button onClick={() => onNavClick('portal-ethics')} className="hover:text-ui-secondary transition-colors whitespace-nowrap">{translations.portalNavEthics}</button></li>
-              <li><button onClick={() => onNavClick('portal-pricing')} className="hover:text-ui-secondary transition-colors whitespace-nowrap">{translations.portalNavPricing}</button></li>
             </>
           ) : (
             <>
@@ -482,7 +481,6 @@ const Navbar: React.FC<NavbarProps> = ({
                 <li><button onClick={() => { onNavClick('portal-tools'); setMobileMenuOpen(false); }}>{translations.portalNavOffers}</button></li>
                 <li><button onClick={() => { onNavClick('portal-engagement'); setMobileMenuOpen(false); }}>{translations.portalNavResults}</button></li>
                 <li><button onClick={() => { onNavClick('portal-ethics'); setMobileMenuOpen(false); }}>{translations.portalNavEthics}</button></li>
-                <li><button onClick={() => { onNavClick('portal-pricing'); setMobileMenuOpen(false); }}>{translations.portalNavPricing}</button></li>
                 <li><button onClick={() => { onNavClick('portal-start'); setMobileMenuOpen(false); }}>{translations.portalNavContact}</button></li>
               </>
             ) : (

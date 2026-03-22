@@ -46,28 +46,49 @@ function notifIcon(type: string) {
   return '🔔';
 }
 
+const UPPERCASE_WORDS = new Set(['ai', 'nlp', 'hr', 'it', 'qa', 'ui', 'ux']);
+
 function formatPositionLabel(position: string | null) {
   if (!position) return '—';
   return position
     .split(/[-_]/g)
     .filter(Boolean)
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .map(part => UPPERCASE_WORDS.has(part.toLowerCase()) ? part.toUpperCase() : part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+}
+
+function capitalizeFirst(value: string | null | undefined): string | null | undefined {
+  if (!value) return value;
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 function hasLongText(value: string | null | undefined) {
   return (value || '').trim().length > 90;
 }
 
+function projectDetails(inquiry: Inquiry) {
+  return [
+    { label: 'Full Name', value: inquiry.name },
+    { label: 'Email', value: inquiry.email },
+    { label: 'Organization', value: inquiry.organization },
+    { label: 'Service of Interest', value: inquiry.service },
+    { label: 'Preferred Engagement Model', value: inquiry.engagement_model },
+    { label: 'Data Volume / Scale', value: inquiry.data_volume },
+    { label: 'Current Tech Stack / Tools', value: inquiry.tech_stack },
+    { label: 'Expected Outcome', value: inquiry.message },
+    { label: 'Success Criteria', value: inquiry.success_criteria },
+  ].filter(item => item.value && String(item.value).trim());
+}
+
 function applicantDetails(inquiry: Inquiry) {
   return [
-    { label: 'Email', value: inquiry.email },
     { label: 'First Name', value: inquiry.first_name },
     { label: 'Last Name', value: inquiry.last_name },
     { label: 'Phone', value: inquiry.phone },
+    { label: 'Email', value: inquiry.email },
     { label: 'Country', value: inquiry.country },
     { label: 'City', value: inquiry.city },
-    { label: 'Experience', value: inquiry.experience },
-    { label: 'Preferred Work Location', value: inquiry.work_location },
+    { label: 'Experience', value: capitalizeFirst(inquiry.experience) },
+    { label: 'Preferred Work Location', value: capitalizeFirst(inquiry.work_location) },
     { label: 'Availability', value: inquiry.availability },
     { label: 'Languages', value: inquiry.languages },
     { label: 'Skills', value: inquiry.skills },
@@ -215,7 +236,7 @@ const STAT_CARDS = (stats: InquiryStats | null) => [
 
 function getEmailTemplate(inquiry: Inquiry): string {
   if (inquiry.context === 'career') {
-    return `Thank you for submitting your application${inquiry.position ? ` for the ${inquiry.position} role` : ''} at Lifewood.
+    return `Thank you for submitting your application${inquiry.position ? ` for the ${formatPositionLabel(inquiry.position)} role` : ''} at Lifewood.
 
 Please complete the initial assessment using this link:
 https://lifewoodph-ai-interviewer.vercel.app/
@@ -262,6 +283,7 @@ export default function AdminDashboardPage() {
   const [selectedInquiryIds, setSelectedInquiryIds] = useState<string[]>([]);
   const [respondTarget, setRespondTarget] = useState<Inquiry | null>(null);
   const [detailsTarget, setDetailsTarget] = useState<Inquiry | null>(null);
+  const [projectDetailsTarget, setProjectDetailsTarget] = useState<Inquiry | null>(null);
   const [expandedMessageIds, setExpandedMessageIds] = useState<string[]>([]);
   const [emailBody, setEmailBody] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -840,12 +862,12 @@ export default function AdminDashboardPage() {
                         <th className="text-left px-4 py-3 text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest">Message</th>
                       )}
                       {activeSection === 'applicants' && (
-                        <th className="text-left px-4 py-3 text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest">Resume / CV</th>
+                        <th className="text-left px-4 py-3 text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest">Applicant Details</th>
                       )}
                       {activeSection === 'projects' && (
                         <>
                           <th className="text-left px-4 py-3 text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest">Expectations</th>
-                          <th className="text-left px-4 py-3 text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest">Attachment</th>
+                          <th className="text-left px-4 py-3 text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest">Project Details</th>
                         </>
                       )}
                       <th className="text-left px-4 py-3 text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest">Applied Date</th>
@@ -903,23 +925,17 @@ export default function AdminDashboardPage() {
 
                           {activeSection === 'applicants' && (
                             <td className="px-4 py-4">
-                              {inquiry.attachment_url ? (
-                                <a
-                                  href={inquiry.attachment_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-2 rounded-xl border border-[#d9cfbf] bg-white px-4 py-2 text-xs font-bold text-[#1a3a2a] transition-colors hover:bg-[#f8f3ea]"
-                                  title={inquiry.attachment_name || 'Resume / CV'}
-                                >
-                                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0Z" />
-                                    <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z" />
-                                  </svg>
-                                  View
-                                </a>
-                              ) : (
-                                <span className="text-xs font-medium text-[#b2b9b2]">No file</span>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => setDetailsTarget(inquiry)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#d9cfbf] bg-white text-[#1a3a2a] text-[11px] font-bold hover:bg-[#f8f3ea] transition-colors whitespace-nowrap"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                  <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0Z" />
+                                  <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z" />
+                                </svg>
+                                View details
+                              </button>
                             </td>
                           )}
 
@@ -933,9 +949,12 @@ export default function AdminDashboardPage() {
                                     <button
                                       type="button"
                                       onClick={() => setExpandedMessageIds(current => isMessageExpanded ? current.filter(id => id !== inquiry.id) : [...current, inquiry.id])}
-                                      className="mt-0.5 shrink-0 rounded-full border border-[#d9cfbf] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-wider text-[#1a3a2a] transition-colors hover:bg-[#f8f3ea]"
+                                      className="mt-0.5 shrink-0 flex items-center justify-center w-6 h-6 rounded-full border border-[#d9cfbf] bg-white text-[#1a3a2a] transition-colors hover:bg-[#f8f3ea]"
+                                      aria-label={isMessageExpanded ? 'Collapse' : 'Expand'}
                                     >
-                                      {isMessageExpanded ? 'Hide' : 'View'}
+                                      <svg className={`w-3 h-3 transition-transform ${isMessageExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                                        <path d="M6 9l6 6 6-6"/>
+                                      </svg>
                                     </button>
                                   ) : null}
                                 </div>
@@ -954,21 +973,29 @@ export default function AdminDashboardPage() {
                                       <button
                                         type="button"
                                         onClick={() => setExpandedMessageIds(current => isMessageExpanded ? current.filter(id => id !== inquiry.id) : [...current, inquiry.id])}
-                                        className="mt-0.5 shrink-0 rounded-full border border-[#d9cfbf] bg-white px-2 py-1 text-[10px] font-black uppercase tracking-wider text-[#1a3a2a] transition-colors hover:bg-[#f8f3ea]"
+                                        className="mt-0.5 shrink-0 flex items-center justify-center w-6 h-6 rounded-full border border-[#d9cfbf] bg-white text-[#1a3a2a] transition-colors hover:bg-[#f8f3ea]"
+                                        aria-label={isMessageExpanded ? 'Collapse' : 'Expand'}
                                       >
-                                        {isMessageExpanded ? 'Hide' : 'View'}
+                                        <svg className={`w-3 h-3 transition-transform ${isMessageExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                                          <path d="M6 9l6 6 6-6"/>
+                                        </svg>
                                       </button>
                                     ) : null}
                                   </div>
                                 ) : <span className="text-xs text-[#c0c8c0]">—</span>}
                               </td>
                               <td className="px-4 py-4">
-                                {inquiry.attachment_url ? (
-                                  <a href={inquiry.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[11px] font-bold text-[#1a3a2a] hover:underline">
-                                    <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                                    <span className="max-w-[120px] truncate">{inquiry.attachment_name || 'File'}</span>
-                                  </a>
-                                ) : <span className="text-xs text-[#c0c8c0]">—</span>}
+                                <button
+                                  type="button"
+                                  onClick={() => setProjectDetailsTarget(inquiry)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#d9cfbf] bg-white text-[#1a3a2a] text-[11px] font-bold hover:bg-[#f8f3ea] transition-colors whitespace-nowrap"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0Z" />
+                                    <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z" />
+                                  </svg>
+                                  View details
+                                </button>
                               </td>
                             </>
                           )}
@@ -1001,28 +1028,17 @@ export default function AdminDashboardPage() {
                           {/* Action */}
                           <td className="px-4 py-4">
                             <div className="flex flex-wrap items-center gap-2">
-                              {activeSection === 'applicants' ? (
+                              {status !== 'contacted' && status !== 'closed' && (
                                 <button
-                                  type="button"
-                                  onClick={() => setDetailsTarget(inquiry)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#d9cfbf] bg-white text-[#1a3a2a] text-[11px] font-bold hover:bg-[#f8f3ea] transition-colors whitespace-nowrap"
+                                  onClick={() => { setRespondTarget(inquiry); setEmailBody(getEmailTemplate(inquiry)); }}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a3a2a] text-white text-[11px] font-bold rounded-lg hover:bg-[#2a5a3a] transition-colors whitespace-nowrap"
                                 >
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0Z" />
-                                    <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z" />
+                                    <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                                   </svg>
-                                  View details
+                                  Respond
                                 </button>
-                              ) : null}
-                              <button
-                                onClick={() => { setRespondTarget(inquiry); setEmailBody(getEmailTemplate(inquiry)); }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a3a2a] text-white text-[11px] font-bold rounded-lg hover:bg-[#2a5a3a] transition-colors whitespace-nowrap"
-                              >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                  <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                                </svg>
-                                Respond
-                              </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1072,7 +1088,6 @@ export default function AdminDashboardPage() {
             <div className="px-6 py-5">
               <div className="mb-2.5">
                 <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#8a9a8a]">Email Draft</p>
-                <p className="mt-1 text-xs text-[#91a092]">This message will be sent using the Lifewood email template.</p>
               </div>
               <textarea
                 value={emailBody}
@@ -1083,10 +1098,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-between gap-4 border-t border-[#ece3d4] bg-[#fffdfa] px-6 py-4">
-              <p className="text-[11px] text-[#8b988d]">
-                A notification will be sent after the email is delivered successfully.
-              </p>
+            <div className="flex items-center justify-end gap-4 border-t border-[#ece3d4] bg-[#fffdfa] px-6 py-4">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setRespondTarget(null)}
@@ -1107,7 +1119,7 @@ export default function AdminDashboardPage() {
 
                     const meta =
                       respondTarget.context === 'career' ? [
-                        { label: 'Position', value: respondTarget.position || 'N/A' },
+                        { label: 'Position', value: formatPositionLabel(respondTarget.position) },
                         { label: 'Date', value: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) },
                         { label: 'Status', value: 'Under Review', color: '#e8a020' },
                       ] : respondTarget.context === 'project' ? [
@@ -1152,9 +1164,9 @@ export default function AdminDashboardPage() {
                     setSendingEmail(false);
                   }
                 }}
-                  className="flex items-center gap-2 rounded-2xl bg-[#173826] px-5 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(23,56,38,0.22)] transition-colors hover:bg-[#214a35] disabled:cursor-wait disabled:opacity-60"
+                  className="flex items-center gap-2 rounded-2xl bg-[#173826] px-8 py-2.5 text-sm font-black text-white shadow-[0_12px_24px_rgba(23,56,38,0.22)] transition-colors hover:bg-[#214a35] disabled:cursor-wait disabled:opacity-60 whitespace-nowrap"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                 </svg>
                 {sendingEmail ? 'Sending…' : 'Send Email'}
@@ -1220,6 +1232,67 @@ export default function AdminDashboardPage() {
               <div className="flex justify-end border-t border-[#ece3d4] bg-[#fffdfa] px-6 py-4">
                 <button
                   onClick={() => setDetailsTarget(null)}
+                  className="px-4 py-2 text-sm font-bold text-[#6a8a7a] transition-colors hover:text-[#1a2e1a]"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {projectDetailsTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3">
+          <div className="w-full max-w-3xl rounded-[28px] border border-white/65 bg-[#f7f2e8]/35 p-1.5 shadow-[0_28px_80px_rgba(19,41,30,0.24)] backdrop-blur-md">
+            <div className="overflow-hidden rounded-[24px] bg-white shadow-[0_10px_30px_rgba(19,41,30,0.08)]">
+              <div className="flex items-start justify-between gap-4 border-b border-[#ece3d4] bg-[linear-gradient(135deg,rgba(247,242,232,0.92),rgba(255,255,255,0.98))] px-6 py-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#8a9a8a]">Project Details</p>
+                  <h3 className="mt-2 text-[1.1rem] font-black leading-tight text-[#193728]">{projectDetailsTarget.name || projectDetailsTarget.email}</h3>
+                  <p className="mt-1 text-[13px] font-medium text-[#6d7c70]">{projectDetailsTarget.organization || projectDetailsTarget.service || '—'}</p>
+                </div>
+                <button
+                  onClick={() => setProjectDetailsTarget(null)}
+                  className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full border border-[#e8dccb] bg-white/90 text-[#7f8f82] shadow-[0_8px_18px_rgba(19,41,30,0.08)] transition-colors hover:bg-[#f8f3ea] hover:text-[#1a2e1a]"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {projectDetails(projectDetailsTarget).map(item => (
+                    <div key={item.label} className={`rounded-2xl border border-[#e8e3da] bg-[#fffdfa] p-4 ${String(item.value).length > 120 ? 'md:col-span-2' : ''}`}>
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a9a8a]">{item.label}</p>
+                      <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[#203427]">{item.value}</p>
+                    </div>
+                  ))}
+                  {projectDetailsTarget.attachment_url && (
+                    <div className="rounded-2xl border border-[#e8e3da] bg-[#fffdfa] p-4 md:col-span-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a9a8a]">Attachment</p>
+                      <div className="mt-2">
+                        <a
+                          href={projectDetailsTarget.attachment_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl border border-[#d9cfbf] bg-white px-4 py-2 text-xs font-bold text-[#1a3a2a] transition-colors hover:bg-[#f8f3ea]"
+                        >
+                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                          </svg>
+                          {projectDetailsTarget.attachment_name || 'View file'}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end border-t border-[#ece3d4] bg-[#fffdfa] px-6 py-4">
+                <button
+                  onClick={() => setProjectDetailsTarget(null)}
                   className="px-4 py-2 text-sm font-bold text-[#6a8a7a] transition-colors hover:text-[#1a2e1a]"
                 >
                   Close

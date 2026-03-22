@@ -5,62 +5,52 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 </head>
 <body style="margin:0;padding:0;background-color:#f0ebe0;font-family:'Segoe UI',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0ebe0;padding:40px 16px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0ebe0;padding:20px 16px;">
 <tr><td align="center">
-<table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);border:3px solid #1a3a2a;">
+<table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.10);border:2px solid #133020;">
 
   <!-- Header -->
-  <tr><td style="background:#f0ebe0;padding:32px 40px;text-align:center;border-bottom:1px solid #e0dbd0;">
+  <tr><td style="background:#f0ebe0;padding:16px 32px;text-align:center;border-bottom:1px solid #e0dbd0;">
     <img src="https://rqerjpkpvwtofpraqibh.supabase.co/storage/v1/object/public/project-attachments/logo.png"
-      alt="Lifewood" height="44" style="height:44px;display:block;margin:0 auto 6px;"/>
-    <p style="margin:4px 0 0;font-size:10px;font-weight:600;color:#4a6a5a;letter-spacing:4px;text-transform:uppercase;">Data Technology</p>
+      alt="Lifewood" height="32" style="height:32px;display:block;margin:0 auto 4px;"/>
+    <p style="margin:0;font-size:9px;font-weight:600;color:#4a6a5a;letter-spacing:4px;text-transform:uppercase;">Data Technology</p>
   </td></tr>
 
   <!-- Body -->
-  <tr><td style="background:#ffffff;padding:36px 40px 28px;">
+  <tr><td style="background:#ffffff;padding:24px 32px 20px;">
 
     <!-- Badge -->
-    <div style="margin-bottom:24px;">
-      <span style="display:inline-block;background:#e8a020;color:#ffffff;font-size:11px;font-weight:800;padding:6px 18px;border-radius:20px;letter-spacing:0.5px;text-transform:uppercase;">Email Confirmation</span>
+    <div style="margin-bottom:14px;">
+      <span style="display:inline-block;background:#e8a020;color:#ffffff;font-size:10px;font-weight:800;padding:4px 14px;border-radius:20px;letter-spacing:0.5px;text-transform:uppercase;">Email Confirmation</span>
     </div>
 
     <!-- Greeting -->
-    <p style="margin:0 0 20px;font-size:16px;color:#1a2e1a;font-weight:500;">Dear <strong>{{ .Data.username }}</strong>,</p>
+    <p style="margin:0 0 12px;font-size:15px;color:#1a2e1a;font-weight:500;">Dear <strong>{{ .Data.username }}</strong>,</p>
 
     <!-- Body text -->
-    <p style="margin:0 0 10px;color:#3a3a3a;font-size:14px;line-height:1.7;">
+    <p style="margin:0 0 16px;color:#3a3a3a;font-size:13px;line-height:1.6;">
       Thank you for creating an account with <strong>Lifewood Data Technology</strong>.
-      Please confirm your email address to activate your account and get started.
+      Please confirm your email address to activate your account.
     </p>
 
     <!-- Confirming for box -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e0dbd0;border-radius:8px;overflow:hidden;">
-      <tr><td style="padding:16px 20px;text-align:center;background:#f7f4ef;">
-        <p style="margin:0 0 4px;font-size:10px;font-weight:700;color:#8a9a8a;letter-spacing:3px;text-transform:uppercase;">Confirming account for</p>
-        <p style="margin:0;font-size:14px;font-weight:800;color:#1a3a2a;">{{ .Email }}</p>
-      </td></tr>
-    </table>
-
-    <!-- What happens next -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;border:1px solid #e8e3da;border-radius:8px;overflow:hidden;">
-      <tr><td style="padding:18px 20px;background:#f7f4ef;">
-        <p style="margin:0 0 10px;font-size:13px;font-weight:800;color:#1a2e1a;">What happens next?</p>
-        <p style="margin:0 0 7px;font-size:13px;color:#3a3a3a;line-height:1.6;"><strong>Confirm your email</strong> &mdash; click the button below</p>
-        <p style="margin:0 0 7px;font-size:13px;color:#3a3a3a;line-height:1.6;"><strong>Log in</strong> &mdash; access your Lifewood account</p>
-        <p style="margin:0;font-size:13px;color:#3a3a3a;line-height:1.6;"><strong>Set up your profile</strong> &mdash; add your photo and bio</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;border:1px solid #e0dbd0;border-radius:8px;overflow:hidden;">
+      <tr><td style="padding:12px 16px;text-align:center;background:#f7f4ef;">
+        <p style="margin:0 0 3px;font-size:10px;font-weight:700;color:#8a9a8a;letter-spacing:3px;text-transform:uppercase;">Confirming account for</p>
+        <p style="margin:0;font-size:13px;font-weight:800;color:#133020;">{{ .Email }}</p>
       </td></tr>
     </table>
 
     <!-- CTA Button -->
-    <div style="text-align:center;margin-bottom:28px;">
+    <div style="text-align:center;margin-bottom:16px;">
       <a href="{{ .ConfirmationURL }}"
-        style="display:inline-block;background:#1a3a2a;color:#ffffff;font-size:15px;font-weight:800;padding:16px 40px;border-radius:50px;text-decoration:none;letter-spacing:0.3px;">
+        style="display:inline-block;background:#133020;color:#ffffff;font-size:14px;font-weight:800;padding:12px 36px;border-radius:50px;text-decoration:none;letter-spacing:0.3px;">
         Confirm My Email
       </a>
     </div>
 
     <!-- Disclaimer -->
-    <p style="margin:0;font-size:12px;color:#aaa;text-align:center;line-height:1.6;">
+    <p style="margin:0;font-size:11px;color:#aaa;text-align:center;line-height:1.5;">
       If you didn't sign up for Lifewood, you can safely ignore this email.<br/>
       This link expires in 24 hours.
     </p>
@@ -68,21 +58,21 @@
   </td></tr>
 
   <!-- Footer -->
-  <tr><td style="background:#f7f4ef;padding:20px 40px;text-align:center;border-top:1px solid #e8e3da;">
-    <p style="margin:0 0 10px;font-size:13px;font-weight:800;color:#1a3a2a;">Lifewood Data Technology</p>
-    <table cellpadding="0" cellspacing="0" style="margin:0 auto 12px;"><tr>
-      <td style="padding:0 8px;"><a href="https://www.instagram.com/lifewood_official/" style="font-size:12px;color:#1a3a2a;font-weight:700;text-decoration:none;">Instagram</a></td>
-      <td style="padding:0 8px;color:#ccc;">|</td>
-      <td style="padding:0 8px;"><a href="https://www.facebook.com/LifewoodPH" style="font-size:12px;color:#1a3a2a;font-weight:700;text-decoration:none;">Facebook</a></td>
-      <td style="padding:0 8px;color:#ccc;">|</td>
-      <td style="padding:0 8px;"><a href="https://www.youtube.com/@LifewoodDataTechnology" style="font-size:12px;color:#1a3a2a;font-weight:700;text-decoration:none;">YouTube</a></td>
-      <td style="padding:0 8px;color:#ccc;">|</td>
-      <td style="padding:0 8px;"><a href="https://www.linkedin.com/company/lifewood-data-technology-ltd." style="font-size:12px;color:#1a3a2a;font-weight:700;text-decoration:none;">LinkedIn</a></td>
+  <tr><td style="background:#f7f4ef;padding:12px 32px;text-align:center;border-top:1px solid #e8e3da;">
+    <p style="margin:0 0 6px;font-size:12px;font-weight:800;color:#1a3a2a;">Lifewood Data Technology</p>
+    <table cellpadding="0" cellspacing="0" style="margin:0 auto 6px;"><tr>
+      <td style="padding:0 6px;"><a href="https://www.instagram.com/lifewood_official/" style="font-size:11px;color:#1a3a2a;font-weight:700;text-decoration:none;">Instagram</a></td>
+      <td style="padding:0 6px;color:#ccc;">|</td>
+      <td style="padding:0 6px;"><a href="https://www.facebook.com/LifewoodPH" style="font-size:11px;color:#1a3a2a;font-weight:700;text-decoration:none;">Facebook</a></td>
+      <td style="padding:0 6px;color:#ccc;">|</td>
+      <td style="padding:0 6px;"><a href="https://www.youtube.com/@LifewoodDataTechnology" style="font-size:11px;color:#1a3a2a;font-weight:700;text-decoration:none;">YouTube</a></td>
+      <td style="padding:0 6px;color:#ccc;">|</td>
+      <td style="padding:0 6px;"><a href="https://www.linkedin.com/company/lifewood-data-technology-ltd." style="font-size:11px;color:#1a3a2a;font-weight:700;text-decoration:none;">LinkedIn</a></td>
     </tr></table>
-    <p style="margin:0 0 4px;font-size:12px;color:#8a9a8a;">
+    <p style="margin:0 0 2px;font-size:11px;color:#8a9a8a;">
       <a href="mailto:hr.lifewood@gmail.com" style="color:#1a3a2a;text-decoration:none;font-weight:600;">hr.lifewood@gmail.com</a>
     </p>
-    <p style="margin:8px 0 0;font-size:11px;color:#bbb;">&copy; 2026 Lifewood &mdash; All Rights Reserved</p>
+    <p style="margin:4px 0 0;font-size:10px;color:#bbb;">&copy; 2026 Lifewood &mdash; All Rights Reserved</p>
   </td></tr>
 
 </table>

@@ -106,7 +106,7 @@ const App: React.FC = () => {
 
     // Check if we are in the portal view and the clicked link is a portal section
     const isInternalPortalNav = location.pathname.startsWith('/company') && [
-      'portal-home', 'portal-process', 'portal-tools', 'portal-engagement', 'portal-ethics', 'portal-pricing', 'portal-start'
+      'portal-home', 'portal-process', 'portal-tools', 'portal-engagement', 'portal-ethics', 'portal-start'
     ].includes(sectionId);
     
     if (isInternalPortalNav) {

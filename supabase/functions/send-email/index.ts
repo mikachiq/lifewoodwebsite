@@ -11,13 +11,16 @@ function buildHtml(name: string, bodyText: string, badge: string, meta: { label:
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
+    .replace(/https?:\/\/[^\s]+/g, url => `<a href="${url}" style="color:#133020;font-weight:600;">${url}</a>`)
     .split('\n')
-    .filter(line => line.trim() !== '')
     .map(line => {
-      if (line.trim().startsWith('- ')) {
-        return `<li style="margin:0 0 4px;color:#2a4a3a;font-size:13px;line-height:1.5;">${line.trim().slice(2)}</li>`;
+      if (line.trim() === '') {
+        return `<div style="height:10px;"></div>`;
       }
-      return `<p style="margin:0 0 6px;color:#2a4a3a;font-size:13px;line-height:1.5;">${line}</p>`;
+      if (line.trim().startsWith('- ')) {
+        return `<li style="margin:0 0 6px;color:#2a4a3a;font-size:13px;line-height:1.6;">${line.trim().slice(2)}</li>`;
+      }
+      return `<p style="margin:0 0 12px;color:#2a4a3a;font-size:13px;line-height:1.6;">${line}</p>`;
     })
     .join('');
 
@@ -33,7 +36,7 @@ function buildHtml(name: string, bodyText: string, badge: string, meta: { label:
 <body style="margin:0;padding:0;background-color:#f0ebe0;font-family:'Segoe UI',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0ebe0;padding:16px;">
 <tr><td align="center">
-<table width="540" cellpadding="0" cellspacing="0" style="max-width:540px;width:100%;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.10);border:2px solid #1a3a2a;">
+<table width="540" cellpadding="0" cellspacing="0" style="max-width:540px;width:100%;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.10);border:2px solid #133020;">
 
   <!-- Header -->
   <tr><td style="background:#f0ebe0;padding:14px 32px;text-align:center;border-bottom:1px solid #cddfd4;">

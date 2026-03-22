@@ -152,29 +152,6 @@ const CompanyView: React.FC<CompanyViewProps> = ({ onBack, translations, onJoinT
     { icon: "\u{1F4DD}", title: translations.portalEthics4Title, desc: translations.portalEthics4Desc }
   ];
 
-  const pricingTiers = [
-    {
-      title: translations.portalPricingTier1Title,
-      range: "$5,000-$15,000",
-      desc: translations.portalPricingTier1Desc,
-      features: [translations.portalPricingTier1F1, translations.portalPricingTier1F2, translations.portalPricingTier1F3],
-      highlight: false
-    },
-    {
-      title: translations.portalPricingTier2Title,
-      range: "$15,000-$50,000",
-      desc: translations.portalPricingTier2Desc,
-      features: [translations.portalPricingTier2F1, translations.portalPricingTier2F2, translations.portalPricingTier2F3, translations.portalPricingTier2F4],
-      highlight: true
-    },
-    {
-      title: translations.portalPricingTier3Title,
-      range: translations.portalPricingTier3Range,
-      desc: translations.portalPricingTier3Desc,
-      features: [translations.portalPricingTier3F1, translations.portalPricingTier3F2, translations.portalPricingTier3F3, translations.portalPricingTier3F4],
-      highlight: false
-    }
-  ];
 
   const roadmapSteps = [
     { icon: "\u{1F50D}", title: translations.portalRoadmap1Title, desc: translations.portalRoadmap1Desc },
@@ -324,46 +301,6 @@ const CompanyView: React.FC<CompanyViewProps> = ({ onBack, translations, onJoinT
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* 6. PRICING OVERVIEW */}
-      <section id="portal-pricing" className="py-24 bg-white dark:bg-[#0a1612]">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black text-dark-serpent dark:text-white mb-4 tracking-tighter">{translations.portalPricingTitle}</h2>
-            <p className="text-xl text-green-2 dark:text-green-4 font-medium">{translations.portalPricingDesc}</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {pricingTiers.map((tier, i) => (
-              <div key={i} className={`p-10 rounded-[40px] border flex flex-col ${tier.highlight ? 'bg-dark-serpent text-white border-dark-serpent shadow-2xl scale-105 z-10' : 'bg-paper/20 dark:bg-white/5 border-paper dark:border-green-900/30 text-dark-serpent dark:text-white'}`}>
-                <div className="mb-8">
-                  <h3 className={`text-2xl font-black mb-2 ${tier.highlight ? 'text-saffron' : 'text-dark-serpent dark:text-white'}`}>{tier.title}</h3>
-                  <p className={`text-sm font-bold uppercase tracking-widest opacity-60 ${tier.highlight ? 'text-white' : 'text-dark-serpent dark:text-white'}`}>{tier.desc}</p>
-                </div>
-                <div className="mb-8">
-                  <p className="text-3xl font-black mb-1">{tier.range}</p>
-                  <p className="text-xs font-bold opacity-50 uppercase tracking-widest">{translations.portalIndicativeRange}</p>
-                </div>
-                <ul className="space-y-4 mb-8 flex-grow">
-                  {tier.features.map((feat, f) => (
-                    <li key={f} className="flex items-center gap-3 font-medium">
-                      <span className={tier.highlight ? 'text-saffron' : 'text-castleton-green'}>✓</span>
-                      <span className="opacity-90">{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-                <button onClick={() => handleScrollTo('portal-start')} className={`w-full py-4 rounded-full font-black transition-all ${tier.highlight ? 'bg-saffron text-dark-serpent hover:bg-white' : 'bg-dark-serpent text-white hover:bg-castleton-green dark:bg-white dark:text-dark-serpent dark:hover:bg-saffron'}`}>
-                  {translations.portalGetQuote}
-                </button>
-              </div>
-            ))}
-          </div>
-          
-          <p className="text-center text-sm font-bold text-green-2 dark:text-green-4 opacity-70 max-w-2xl mx-auto">
-            {translations.portalPricingNote}
-          </p>
         </div>
       </section>
 
