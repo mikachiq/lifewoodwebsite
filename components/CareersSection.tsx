@@ -224,36 +224,77 @@ const CareersSection: React.FC<CareersSectionProps> = ({ translations, onJoinTea
         </div>
 
         <div className="mb-40">
-          <div className="text-center mb-20 max-w-2xl mx-auto">
-            <h3 className="text-4xl font-black text-dark-serpent dark:text-white mb-4 tracking-tight">{translations.careerPerksTitle}</h3>
-            <p className="text-xl text-green-2 dark:text-green-4 font-medium leading-relaxed">{translations.careerValuesDesc}</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {benefits.map((b, i) => (
-              <div key={i} className="p-10 bg-paper/20 dark:bg-dark-serpent/40 rounded-[40px] border border-paper dark:border-green-900/30 hover:-translate-y-2 transition-all hover:bg-white dark:hover:bg-dark-serpent hover:shadow-2xl group">
-                <div className="text-5xl mb-8 group-hover:scale-110 transition-transform origin-left">{b.icon}</div>
-                <h4 className="text-2xl font-black text-dark-serpent dark:text-white mb-4 group-hover:text-castleton-green dark:group-hover:text-saffron transition-colors">{b.title}</h4>
-                <p className="text-green-1 dark:text-green-4 font-medium leading-relaxed">{b.desc}</p>
+          <div className="flex flex-col xl:flex-row items-stretch gap-12 xl:gap-16 px-0 md:px-2">
+            <div className="flex-1 flex flex-col gap-6 w-full">
+              <div className="max-w-2xl">
+                <h3 className="text-4xl font-black text-dark-serpent dark:text-white mb-4 tracking-tight">{translations.careerPerksTitle}</h3>
+                <p className="text-xl text-green-2 dark:text-green-4 font-medium leading-relaxed">{translations.careerValuesDesc}</p>
               </div>
-            ))}
-          </div>
-        </div>
 
-        <div className="mb-40 p-12 md:p-20 bg-dark-serpent rounded-[60px] text-white relative overflow-hidden shadow-3xl border border-white/5">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-saffron/10 blur-[100px]" />
-          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-castleton-green/10 blur-[100px]" />
-          <h3 className="text-4xl font-black mb-20 tracking-tight text-center relative z-10">{translations.careerNextTitle}</h3>
-          <div className="grid md:grid-cols-4 gap-12 relative">
-            <div className="hidden md:block absolute top-12 left-0 w-full h-1 bg-white/10 -z-0" />
-            {steps.map((s, i) => (
-              <div key={i} className="relative z-10 group">
-                <div className="w-24 h-24 bg-saffron text-dark-serpent rounded-[32px] flex items-center justify-center text-3xl font-black mb-8 shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-transform">
-                  {s.num}
+              {benefits.map((b, i) => (
+                <div key={i} className="p-10 bg-paper/20 dark:bg-dark-serpent/40 rounded-[40px] border border-paper dark:border-green-900/30 hover:-translate-y-2 transition-all hover:bg-white dark:hover:bg-dark-serpent hover:shadow-2xl group w-full">
+                  <div className="text-5xl mb-8 group-hover:scale-110 transition-transform origin-left">{b.icon}</div>
+                  <h4 className="text-2xl font-black text-dark-serpent dark:text-white mb-4 group-hover:text-castleton-green dark:group-hover:text-saffron transition-colors">{b.title}</h4>
+                  <p className="text-green-1 dark:text-green-4 font-medium leading-relaxed">{b.desc}</p>
                 </div>
-                <h4 className="text-2xl font-black mb-4 group-hover:text-saffron transition-colors">{s.title}</h4>
-                <p className="text-green-4 leading-relaxed font-medium">{s.desc}</p>
+              ))}
+            </div>
+
+            <div className="w-full xl:w-[480px] xl:min-w-[420px] bg-dark-serpent rounded-[36px] px-10 py-10 text-white relative shadow-3xl border border-white/5 flex flex-col">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-saffron/10 blur-[100px] pointer-events-none rounded-[36px]" />
+              <div className="absolute bottom-0 left-0 w-56 h-56 bg-castleton-green/10 blur-[100px] pointer-events-none rounded-[36px]" />
+
+              <div className="relative z-10 w-full shrink-0">
+                <h3 className="text-3xl font-black tracking-tight text-center mb-8">Hiring Process</h3>
               </div>
-            ))}
+
+              {/* Branching timeline — flex-1 so it fills remaining card height */}
+              <div className="relative z-10 flex-1 flex flex-col">
+                {/* Central vertical line */}
+                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/20 -translate-x-1/2 pointer-events-none" />
+
+                {/* Steps distributed evenly across full height */}
+                <div className="flex-1 flex flex-col justify-between">
+                  {steps.map((s, i) => {
+                    const isLeft = i % 2 === 0;
+                    return (
+                      <div key={i} className="relative flex items-start">
+                        {/* Left slot */}
+                        <div className="flex-1 flex justify-end pr-4">
+                          {isLeft && (
+                            <div className="w-full rounded-[18px] bg-white/5 border border-white/10 px-5 py-5">
+                              <div className="w-9 h-9 bg-saffron text-dark-serpent rounded-[10px] flex items-center justify-center text-sm font-black mb-3 shadow-lg">
+                                {s.num}
+                              </div>
+                              <h4 className="text-base font-black mb-1 leading-tight">{s.title}</h4>
+                              <p className="text-sm text-green-4 leading-relaxed font-medium">{s.desc}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Center dot */}
+                        <div className="w-4 shrink-0 flex items-start justify-center pt-4 z-10">
+                          <div className="w-3 h-3 rounded-full bg-saffron ring-2 ring-dark-serpent" />
+                        </div>
+
+                        {/* Right slot */}
+                        <div className="flex-1 flex justify-start pl-4">
+                          {!isLeft && (
+                            <div className="w-full rounded-[18px] bg-white/5 border border-white/10 px-5 py-5">
+                              <div className="w-9 h-9 bg-saffron text-dark-serpent rounded-[10px] flex items-center justify-center text-sm font-black mb-3 shadow-lg">
+                                {s.num}
+                              </div>
+                              <h4 className="text-base font-black mb-1 leading-tight">{s.title}</h4>
+                              <p className="text-sm text-green-4 leading-relaxed font-medium">{s.desc}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

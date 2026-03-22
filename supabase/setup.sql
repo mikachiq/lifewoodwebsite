@@ -5,7 +5,6 @@
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   username text,
-  bio text,
   avatar_url text,
   is_admin boolean DEFAULT false,
   updated_at timestamptz not null default now()
@@ -116,6 +115,37 @@ on storage.objects
 for delete
 using (bucket_id = 'avatars' and auth.uid() = owner);
 
+-- 5) Public attachment buckets for career/project form uploads
+insert into storage.buckets (id, name, public)
+values
+  ('application-attachments', 'application-attachments', true),
+  ('project-attachments', 'project-attachments', true)
+on conflict (id) do update set public = excluded.public;
+
+drop policy if exists "application_attachments_public_read" on storage.objects;
+create policy "application_attachments_public_read"
+on storage.objects
+for select
+using (bucket_id = 'application-attachments');
+
+drop policy if exists "application_attachments_public_insert" on storage.objects;
+create policy "application_attachments_public_insert"
+on storage.objects
+for insert
+with check (bucket_id = 'application-attachments');
+
+drop policy if exists "project_attachments_public_read" on storage.objects;
+create policy "project_attachments_public_read"
+on storage.objects
+for select
+using (bucket_id = 'project-attachments');
+
+drop policy if exists "project_attachments_public_insert" on storage.objects;
+create policy "project_attachments_public_insert"
+on storage.objects
+for insert
+with check (bucket_id = 'project-attachments');
+
 -- 🔥 ADMIN USER CREATION (Run ONCE after table setup)
 -- ⚠️  Copy the generated ID to the UPDATE below!
 INSERT INTO auth.users (
@@ -143,4 +173,3 @@ INSERT INTO auth.users (
 
 -- ⚠️ REPLACE '00000000-...' BELOW WITH ID FROM ABOVE:
 -- UPDATE profiles SET is_admin = true WHERE id = 'PASTE_USER_ID_HERE';
-

@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { TranslationSet } from '../types';
 import NeuralBackground from './NeuralBackground';
+import { getSupabase } from '../lib/supabaseClient';
 
 interface CompanyViewProps {
   onBack: () => void;
@@ -10,12 +11,21 @@ interface CompanyViewProps {
 
 const CompanyView: React.FC<CompanyViewProps> = ({ onBack, translations, onJoinTeam }) => {
   const [isInquirySubmitted, setIsInquirySubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [formState, setFormState] = useState({
+    name: "",
+    email: "",
+    organization: "",
     service: "",
-    model: ""
+    model: "",
+    data_volume: "",
+    tech_stack: "",
+    message: "",
   });
 
-  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormState(prev => ({ ...prev, [name]: value }));
   };
@@ -24,9 +34,53 @@ const CompanyView: React.FC<CompanyViewProps> = ({ onBack, translations, onJoinT
     window.scrollTo(0, 0);
   }, []);
 
-  const handleInquirySubmit = (e: React.FormEvent) => {
+  const handleInquirySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsInquirySubmitted(true);
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const supabase = getSupabase();
+
+      let attachment_url: string | null = null;
+      let attachment_name: string | null = null;
+
+      if (attachmentFile) {
+        const filePath = `${Date.now()}-${attachmentFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('project-attachments')
+          .upload(filePath, attachmentFile);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage
+          .from('project-attachments')
+          .getPublicUrl(filePath);
+        attachment_url = urlData.publicUrl;
+        attachment_name = attachmentFile.name;
+      }
+
+      const { error: insertError } = await supabase.from('inquiries').insert({
+        name: formState.name,
+        email: formState.email,
+        organization: formState.organization,
+        service: formState.service,
+        engagement_model: formState.model,
+        data_volume: formState.data_volume,
+        tech_stack: formState.tech_stack,
+        message: formState.message,
+        attachment_url,
+        attachment_name,
+        context: 'project',
+        status: 'new',
+      });
+      if (insertError) throw insertError;
+      setIsInquirySubmitted(true);
+      setFormState({ name: "", email: "", organization: "", service: "", model: "", data_volume: "", tech_stack: "", message: "" });
+      setAttachmentFile(null);
+    } catch (err) {
+      console.error('[CompanyView] Submit error:', err);
+      setSubmitError('Failed to submit request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleScrollTo = (id: string) => {
@@ -370,19 +424,15 @@ const CompanyView: React.FC<CompanyViewProps> = ({ onBack, translations, onJoinT
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-80 px-1">{translations.pContFormName}</label>
-                        <input type="text" required placeholder={translations.pContFormNamePlaceholder} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
+                        <input type="text" required name="name" value={formState.name} onChange={handleInputChange} placeholder={translations.pContFormNamePlaceholder} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-80 px-1">{translations.pContFormEmail}</label>
-                        <input type="email" required placeholder={translations.pContFormEmailPlaceholder} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
+                        <input type="email" required name="email" value={formState.email} onChange={handleInputChange} placeholder={translations.pContFormEmailPlaceholder} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1 lg:col-span-2">
                         <label className="text-[10px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-80 px-1">{translations.pContFormOrg}</label>
-                        <input type="text" required placeholder={translations.pContFormOrgPlaceholder} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-80 px-1">{translations.projFormRole}</label>
-                        <input type="text" required placeholder={translations.projFormRole} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
+                        <input type="text" required name="organization" value={formState.organization} onChange={handleInputChange} placeholder={translations.pContFormOrgPlaceholder} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
                       </div>
                     </div>
                   </div>
@@ -395,78 +445,59 @@ const CompanyView: React.FC<CompanyViewProps> = ({ onBack, translations, onJoinT
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-80 px-1">{translations.projFormService}</label>
-                        <div className="relative">
-                          <select 
-                            required 
-                            name="service"
-                            value={formState.service}
-                            onChange={handleSelectChange}
-                            className={`w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all font-bold text-sm appearance-none cursor-pointer ${formState.service ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
-                          >
-                            <option value="" disabled className="text-green-2/50 dark:text-green-4/50">{translations.portalSelectService}</option>
-                            <option value="Global Workforce Solutions" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.portalServiceOption1}</option>
-                            <option value="Custom AI Integration" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.portalServiceOption2}</option>
-                            <option value="Data Annotation" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.portalServiceOption3}</option>
-                            <option value="Other" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.portalServiceOther}</option>
-                          </select>
-                          <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-dark-serpent dark:text-white">
-                            <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
-                              <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path>
-                            </svg>
-                          </div>
-                        </div>
+                        <input type="text" required name="service" value={formState.service} onChange={handleInputChange} placeholder={translations.projFormService} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-80 px-1">{translations.projFormEngagement}</label>
-                        <div className="relative">
-                          <select 
-                            required 
-                            name="model"
-                            value={formState.model}
-                            onChange={handleSelectChange}
-                            className={`w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all font-bold text-sm appearance-none cursor-pointer ${formState.model ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
-                          >
-                            <option value="" disabled className="text-green-2/50 dark:text-green-4/50">{translations.portalSelectModel}</option>
-                            <option value="Per-Project" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.projFormEng1}</option>
-                            <option value="Retainer" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.projFormEng3}</option>
-                            <option value="Phased Delivery" className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{translations.projFormEng2}</option>
-                          </select>
-                          <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-dark-serpent dark:text-white">
-                            <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
-                              <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path>
-                            </svg>
-                          </div>
-                        </div>
+                        <input type="text" required name="model" value={formState.model} onChange={handleInputChange} placeholder={translations.projFormEngagement} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-80 px-1">{translations.projFormDataVolume}</label>
-                        <input type="text" placeholder={translations.projFormDataVolume} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
+                        <input type="text" name="data_volume" value={formState.data_volume} onChange={handleInputChange} placeholder={translations.projFormDataVolume} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-80 px-1">{translations.projFormTechStack}</label>
-                        <input type="text" placeholder={translations.projFormTechStack} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
+                        <input type="text" name="tech_stack" value={formState.tech_stack} onChange={handleInputChange} placeholder={translations.projFormTechStack} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
                       </div>
                     </div>
                   </div>
 
-                  {/* Section 03: Outcome */}
+                  {/* Section 03: Project Scope */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 border-b border-castleton-green/10 dark:border-white/10 pb-2">
                       <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-castleton-green dark:text-saffron">{translations.portalOutcomeExpectations}</h4>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-80 px-1">{translations.projFormSuccess}</label>
-                        <textarea required placeholder={translations.projFormSuccessPlaceholder} rows={3} className="w-full p-4 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm resize-none"></textarea>
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-80 px-1">{translations.pContFormMsg}</label>
-                        <textarea required placeholder={translations.pContFormMsgPlaceholder} rows={3} className="w-full p-4 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm resize-none"></textarea>
-                      </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-80 px-1">{translations.pContFormMsg}</label>
+                      <textarea required name="message" value={formState.message} onChange={handleInputChange} placeholder={translations.pContFormMsgPlaceholder} rows={4} className="w-full p-4 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm resize-none"></textarea>
                     </div>
                   </div>
 
+                  {/* Section 04: Attachment */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 border-b border-castleton-green/10 dark:border-white/10 pb-2">
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-castleton-green dark:text-saffron">Attachment (Optional)</h4>
+                    </div>
+                    <label className="flex items-center gap-4 p-4 border-2 border-dashed border-castleton-green/20 dark:border-white/10 rounded-2xl cursor-pointer hover:border-castleton-green/40 dark:hover:border-white/20 transition-all group">
+                      <span className="text-2xl">📎</span>
+                      <div className="flex-1 min-w-0">
+                        {attachmentFile ? (
+                          <p className="text-sm font-bold text-castleton-green dark:text-saffron truncate">✓ {attachmentFile.name}</p>
+                        ) : (
+                          <p className="text-sm font-bold text-green-2 dark:text-green-4">Click to attach a file <span className="font-normal opacity-60 text-xs">(PDF, DOCX, XLSX, etc.)</span></p>
+                        )}
+                      </div>
+                      {attachmentFile && (
+                        <button type="button" onClick={(e) => { e.preventDefault(); setAttachmentFile(null); }} className="text-xs font-black text-red-400 hover:text-red-600 shrink-0">Remove</button>
+                      )}
+                      <input type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.png,.jpg,.jpeg" onChange={(e) => setAttachmentFile(e.target.files?.[0] || null)} />
+                    </label>
+                  </div>
+
                   {/* Form Footer */}
+                  {submitError && (
+                    <p className="text-red-500 text-sm font-bold">{submitError}</p>
+                  )}
                   <div className="pt-6 border-t border-castleton-green/10 dark:border-white/10">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                       <div className="flex items-center gap-3 opacity-60">
@@ -475,8 +506,8 @@ const CompanyView: React.FC<CompanyViewProps> = ({ onBack, translations, onJoinT
                            {translations.projFormNote}
                          </p>
                       </div>
-                      <button type="submit" className="w-full md:w-auto px-16 py-5 bg-castleton-green text-white font-black text-xl rounded-2xl hover:bg-green-1 transition-all shadow-xl shadow-castleton-green/30">
-                        {translations.pContFormBtn}
+                      <button type="submit" disabled={isSubmitting} className="w-full md:w-auto px-16 py-5 bg-castleton-green text-white font-black text-xl rounded-2xl hover:bg-green-1 transition-all shadow-xl shadow-castleton-green/30 disabled:opacity-60">
+                        {isSubmitting ? 'Submitting...' : translations.pContFormBtn}
                       </button>
                     </div>
                   </div>

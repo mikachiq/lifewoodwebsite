@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../components/AuthProvider';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
-// Local type extended from types.ts Profile
+const PROFILE_REFRESH_EVENT = 'lifewood:profile-refresh';
+
 export type Profile = {
   id: string;
   username: string | null;
-  bio: string | null;
   avatar_url: string | null;
   is_admin: boolean;
   updated_at: string | null;
@@ -30,10 +30,17 @@ export function useProfile(): UseProfileResult {
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
+
+  useEffect(() => {
+    const handleRefresh = () => setRefreshToken(token => token + 1);
+    window.addEventListener(PROFILE_REFRESH_EVENT, handleRefresh);
+    return () => window.removeEventListener(PROFILE_REFRESH_EVENT, handleRefresh);
+  }, []);
 
   useEffect(() => {
     if (authLoading) {
-      setLoading(true);
+      setLoading(profile ? false : true);
       return;
     }
 
@@ -46,16 +53,16 @@ export function useProfile(): UseProfileResult {
 
     let cancelled = false;
     const supabase = getSupabase();
+    const hasCachedProfile = profile?.id === user.id;
 
     const run = async () => {
       try {
-        setLoading(true);
+        setLoading(!hasCachedProfile);
         const { data, error } = await supabase
           .from('profiles')
           .select(`
             id,
             username,
-            bio,
             avatar_url,
             is_admin,
             updated_at
@@ -78,7 +85,7 @@ export function useProfile(): UseProfileResult {
           setAvatarSrc(null);
         }
       } catch {
-        if (!cancelled) {
+        if (!cancelled && !hasCachedProfile) {
           setProfile(null);
           setAvatarSrc(null);
         }
@@ -87,12 +94,12 @@ export function useProfile(): UseProfileResult {
       }
     };
 
-    run();
+    void run();
 
     return () => {
       cancelled = true;
     };
-  }, [authLoading, user]);
+  }, [authLoading, profile?.id, refreshToken, user?.id]);
 
   const displayName = useMemo(() => {
     if (!user) return null;
@@ -103,5 +110,3 @@ export function useProfile(): UseProfileResult {
 
   return { loading, profile, avatarSrc, displayName, isAdmin };
 }
-
-

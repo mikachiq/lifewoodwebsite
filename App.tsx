@@ -11,6 +11,7 @@ import Services from './components/Services';
 import ServicesOfferedSection from './components/ServicesOfferedSection';
 import Impact from './components/Impact';
 import CareersSection from './components/CareersSection';
+import CompanyNewsSection from './components/CompanyNewsSection';
 import CTA from './components/CTA';
 import Footer from './components/Footer';
 import EmploymentModal from './components/EmploymentModal';
@@ -24,6 +25,10 @@ import ProfilePage from './pages/ProfilePage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminPostsPage from './pages/AdminPostsPage';
+import AdminPostEditorPage from './pages/AdminPostEditorPage';
+import NewsFeedPage from './pages/NewsFeedPage';
+import NewsPostPage from './pages/NewsPostPage';
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -112,11 +117,11 @@ const App: React.FC = () => {
 
     // If we are not in home view and it's not a portal nav, switch to home
     if (location.pathname !== '/') {
-      const targetId = sectionId === 'careers' ? 'careers-segment' : sectionId;
+      const targetId = sectionId === 'careers' ? 'careers-segment' : sectionId === 'news' ? 'news-section' : sectionId;
       navigate('/', { state: { scrollTo: targetId } });
     } else {
       // We are in home view, just scroll
-      const targetId = sectionId === 'careers' ? 'careers-segment' : sectionId;
+      const targetId = sectionId === 'careers' ? 'careers-segment' : sectionId === 'news' ? 'news-section' : sectionId;
       const el = document.getElementById(targetId);
       if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
@@ -136,19 +141,23 @@ const App: React.FC = () => {
     }, 50);
   }, [location.pathname, location.state, navigate]);
 
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
   return (
     <div className="min-h-screen font-manrope selection:bg-ui-accent selection:text-ui-accent-contrast bg-ui-base text-ui-text transition-colors duration-300">
-      <Navbar 
-        currentLang={appState.language} 
-        onLangChange={setLanguage} 
-        theme={appState.theme} 
-        onThemeToggle={toggleTheme}
-        onJoinTeam={() => toggleModal(true)}
-        translations={t}
-        currentView={currentView}
-        onNavigate={setView}
-        onNavClick={handleNavClick}
-      />
+      {!isAdminRoute && (
+        <Navbar
+          currentLang={appState.language}
+          onLangChange={setLanguage}
+          theme={appState.theme}
+          onThemeToggle={toggleTheme}
+          onJoinTeam={() => toggleModal(true)}
+          translations={t}
+          currentView={currentView}
+          onNavigate={setView}
+          onNavClick={handleNavClick}
+        />
+      )}
       
       <main>
         <Routes>
@@ -171,6 +180,7 @@ const App: React.FC = () => {
                 <Services translations={t} />
                 <Impact translations={t} />
                 <CareersSection translations={t} onJoinTeam={(positionValue?: string) => toggleModal(true, positionValue)} />
+                <CompanyNewsSection />
                 <CTA translations={t} onPortalClick={() => setView('company')} />
               </>
             }
@@ -200,16 +210,58 @@ const App: React.FC = () => {
               </AdminProtectedRoute>
             }
           />
+          <Route
+            path="/admin/posts"
+            element={
+              <AdminProtectedRoute>
+                <AdminPostsPage />
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/posts/create"
+            element={
+              <AdminProtectedRoute>
+                <AdminPostEditorPage />
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/posts/:id/edit"
+            element={
+              <AdminProtectedRoute>
+                <AdminPostEditorPage />
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/news"
+            element={
+              <ProtectedRoute>
+                <NewsFeedPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/news/:id"
+            element={
+              <ProtectedRoute>
+                <NewsPostPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
 
-      <Footer
-        translations={t}
-        theme={appState.theme}
-        onContactClick={() => handleNavClick('contact')}
-        onNavigateSection={handleNavClick}
-      />
+      {!isAdminRoute && (
+        <Footer
+          translations={t}
+          theme={appState.theme}
+          onContactClick={() => handleNavClick('contact')}
+          onNavigateSection={handleNavClick}
+        />
+      )}
 
       {appState.isModalOpen && (
         <EmploymentModal 

@@ -30,7 +30,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
     window.setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== toastWithId.id));
-    }, 4000);
+    }, 1800);
   }, []);
 
   const value = useMemo(() => ({ pushToast }), [pushToast]);
@@ -38,11 +38,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="fixed top-4 right-4 z-[3000] space-y-3 w-[min(92vw,420px)]">
+      <div className="fixed top-4 right-4 z-[3000] flex flex-col items-end gap-3 max-w-[92vw]">
         {toasts.map(t => (
           <div
             key={t.id}
-            className={`rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur bg-white/90 ${
+            className={`inline-flex max-w-[min(92vw,420px)] rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur bg-white/90 ${
               t.type === 'success'
                 ? 'border-emerald-500/30 text-emerald-900'
                 : t.type === 'error'
@@ -65,4 +65,3 @@ export function useToast() {
   if (!ctx) throw new Error('useToast must be used within ToastProvider');
   return ctx;
 }
-

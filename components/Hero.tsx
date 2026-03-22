@@ -138,16 +138,17 @@ const Hero: React.FC<HeroProps> = ({ translations, onJoinTeam, onNavigate, onLog
         <div className="absolute inset-0 bg-gradient-to-r from-white via-transparent to-white dark:from-[#0a1612] dark:via-transparent dark:to-[#0a1612] z-10 pointer-events-none" />
         <div className="flex animate-marquee gap-8 whitespace-nowrap px-4">
           {marqueeCards.map((c, i) => (
-            <div 
-              key={i} 
-              className="inline-block w-80 p-8 bg-ui-base/80 dark:bg-ui-surface/40 backdrop-blur-md rounded-[40px] shadow-xl border border-ui-border/60 dark:border-ui-border/40 flex flex-col gap-6 hover:scale-105 transition-transform duration-300 group"
+            <div
+              key={i}
+              className="inline-flex flex-col gap-6 p-8 bg-ui-base/80 dark:bg-ui-surface/40 backdrop-blur-md rounded-[40px] shadow-xl border border-ui-border/60 dark:border-ui-border/40 hover:scale-105 transition-transform duration-300 group shrink-0"
+              style={{ width: '220px', height: '220px' }}
             >
-              <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${c.color} flex items-center justify-center text-3xl shadow-lg group-hover:rotate-12 transition-transform duration-500`}>
+              <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${c.color} flex items-center justify-center text-3xl shadow-lg group-hover:rotate-12 transition-transform duration-500 shrink-0`}>
                 {c.icon}
               </div>
-              <div>
-                <h4 className={`text-xl font-black mb-2 ${c.textColor || 'text-dark-serpent dark:text-white'}`}>{c.title}</h4>
-                <p className="text-green-2 dark:text-green-4 font-bold leading-tight whitespace-normal text-sm">{c.text}</p>
+              <div className="min-h-0">
+                <h4 className={`text-base font-black mb-1 ${c.textColor || 'text-dark-serpent dark:text-white'}`}>{c.title}</h4>
+                <p className="text-green-2 dark:text-green-4 font-bold leading-tight whitespace-normal text-xs line-clamp-3">{c.text}</p>
               </div>
             </div>
           ))}

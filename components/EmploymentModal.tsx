@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { TranslationSet } from '../types';
+import { getSupabase } from '../lib/supabaseClient';
 
 interface EmploymentModalProps {
   onClose: () => void;
@@ -43,6 +44,8 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
   };
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -66,6 +69,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
     internshipHours: '',
   });
 
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState('');
 
   const positions = [
@@ -137,13 +141,77 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
+      setAttachmentFile(e.target.files[0]);
       setFileName(e.target.files[0].name);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const supabase = getSupabase();
+      let attachment_url: string | null = null;
+      let attachment_name: string | null = null;
+
+      if (attachmentFile) {
+        const safeName = attachmentFile.name.replace(/\s+/g, '-');
+        const filePath = `${Date.now()}-${safeName}`;
+        const { error: uploadError } = await supabase.storage
+          .from('application-attachments')
+          .upload(filePath, attachmentFile, {
+            upsert: false,
+            contentType: attachmentFile.type || 'application/octet-stream',
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('application-attachments')
+          .getPublicUrl(filePath);
+
+        attachment_url = urlData.publicUrl;
+        attachment_name = attachmentFile.name;
+      }
+
+      const { error: insertError } = await supabase.from('inquiries').insert({
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        phone: `${formData.phoneCountryCode} ${formData.phoneNumber}`.trim(),
+        country: formData.country,
+        city: formData.city,
+        position: effectivePosition || formData.position,
+        experience: formData.experience,
+        work_location: formData.workLocation,
+        availability: formData.availability,
+        languages: formData.languages.join(', '),
+        skills: formData.skills,
+        cover_letter: formData.coverLetter,
+        linkedin: formData.linkedin,
+        portfolio: formData.portfolio,
+        additional_info: formData.additionalInfo,
+        university: formData.university,
+        course_program: formData.courseProgram,
+        internship_hours: formData.internshipHours,
+        attachment_url,
+        attachment_name,
+        message: formData.coverLetter || formData.skills || '',
+        context: 'career',
+        status: 'new',
+      });
+      if (insertError) throw insertError;
+      setIsSubmitted(true);
+      setAttachmentFile(null);
+      setFileName('');
+    } catch (err) {
+      console.error('[EmploymentModal] Submit error:', err);
+      setSubmitError('Failed to submit application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const benefits = [
@@ -224,18 +292,6 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
             </div>
 
             <div className="p-6 md:p-8 space-y-6">
-              <div className="bg-white/70 dark:bg-green-900/20 py-3 px-4 rounded-2xl border border-paper dark:border-green-800 flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-6">
-                <span className="text-xs font-black text-dark-serpent dark:text-white uppercase tracking-widest shrink-0">{translations.modalBenefitsTitle}</span>
-                <div className="flex flex-wrap gap-x-6 gap-y-2 items-center">
-                  {benefits.map((b, i) => (
-                    <div key={i} className="flex items-center gap-2" title={b.label}>
-                      <span className="w-2 h-2 rounded-full bg-castleton-green dark:bg-saffron" />
-                      <span className="text-[10px] md:text-xs font-bold text-green-1 dark:text-green-3 whitespace-nowrap">{b.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 pb-1 border-b border-castleton-green/10 dark:border-green-800">
@@ -523,6 +579,9 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                   </div>
                 )}
 
+                {submitError && (
+                  <p className="text-red-500 text-sm font-bold">{submitError}</p>
+                )}
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-castleton-green/10 dark:border-green-800">
                   <p className="text-xs text-green-1 font-bold opacity-70">{translations.formNeedHelp} <a href="mailto:hr@lifewood.com" className="text-castleton-green dark:text-saffron underline">hr@lifewood.com</a></p>
                   <div className="flex gap-3 w-full sm:w-auto">
@@ -535,9 +594,10 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 sm:flex-none px-8 py-2.5 bg-saffron text-dark-serpent rounded-full font-extrabold hover:bg-earth-yellow hover:-translate-y-0.5 transition-all shadow-lg shadow-saffron/20 text-sm"
+                      disabled={isSubmitting}
+                      className="flex-1 sm:flex-none px-8 py-2.5 bg-saffron text-dark-serpent rounded-full font-extrabold hover:bg-earth-yellow hover:-translate-y-0.5 transition-all shadow-lg shadow-saffron/20 text-sm disabled:opacity-60"
                     >
-                      {translations.formBtnSubmit}
+                      {isSubmitting ? 'Submitting...' : translations.formBtnSubmit}
                     </button>
                   </div>
                 </div>

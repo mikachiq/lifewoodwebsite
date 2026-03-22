@@ -5,11 +5,13 @@ export default function Modal({
   title,
   onClose,
   children,
+  instagramStyle = false,
 }: {
   open: boolean;
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  instagramStyle?: boolean;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -33,47 +35,65 @@ export default function Modal({
     <div className="fixed inset-0 z-[2500]" role="dialog" aria-modal="true" aria-label={title}>
       <button
         type="button"
-        className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/45 backdrop-blur-[6px]"
         aria-label="Close"
         onClick={onClose}
       />
 
       <div className="relative min-h-full flex items-center justify-center p-4">
-        <div className="w-full max-w-3xl">
-          <div className="bg-paper/20 dark:bg-white/5 p-1.5 rounded-[44px] shadow-3xl border border-paper dark:border-green-900/30">
-            <div className="bg-paper/60 dark:bg-dark-serpent/50 rounded-[40px] relative overflow-hidden">
-              <div className="absolute -top-16 -right-16 w-56 h-56 bg-castleton-green/10 dark:bg-saffron/10 rounded-full blur-[40px]" />
-              <div className="relative">
-                <div className="flex items-start justify-between gap-6 p-6 border-b border-paper dark:border-green-900/30">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-white/70 dark:bg-green-900/20 border border-paper dark:border-green-800 flex items-center justify-center text-xl">
-                      {'\u{1F4C4}'}
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-black text-dark-serpent dark:text-white tracking-tight leading-none">
-                        {title}
-                      </h3>
-                      <p className="text-xs font-bold text-green-1 dark:text-green-3 mt-1 opacity-90">
-                        Lifewood Data Technology
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="w-10 h-10 rounded-2xl bg-white/70 dark:bg-green-900/20 border border-paper dark:border-green-800 text-dark-serpent dark:text-white font-black hover:opacity-80 transition-opacity"
-                    aria-label="Close"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div className="p-6 max-h-[70vh] overflow-auto">{children}</div>
+        {instagramStyle ? (
+          <div className="relative w-[85vw] max-w-[1100px] max-h-[85vh]">
+            <div className="rounded-[44px] border border-paper bg-paper/20 p-1.5 shadow-3xl dark:border-green-900/30 dark:bg-white/5">
+              <div className="relative overflow-hidden rounded-[40px] bg-paper/45 shadow-[0_24px_60px_rgba(0,0,0,0.25)] backdrop-blur-xl dark:bg-dark-serpent/45">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="absolute top-4 right-4 z-20 h-10 w-10 rounded-2xl border border-paper bg-white/80 text-dark-serpent font-black shadow-md transition-opacity hover:opacity-80 dark:border-green-800 dark:bg-green-900/25 dark:text-white"
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+                {children}
               </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="w-full max-w-3xl">
+            <div className="rounded-[44px] border border-paper bg-paper/20 p-1.5 shadow-3xl dark:border-green-900/30 dark:bg-white/5">
+              <div className="relative overflow-hidden rounded-[40px] bg-paper/60 dark:bg-dark-serpent/50">
+                <div className="absolute -top-16 -right-16 h-56 w-56 rounded-full bg-castleton-green/10 blur-[40px] dark:bg-saffron/10" />
+                <div className="relative">
+                  <div className="flex items-start justify-between gap-6 border-b border-paper p-6 dark:border-green-900/30">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-paper bg-white/70 text-xl dark:border-green-800 dark:bg-green-900/20">
+                        {'\u{1F4C4}'}
+                      </div>
+                      <div>
+                        <h3 className="leading-none tracking-tight text-xl font-black text-dark-serpent dark:text-white">
+                          {title}
+                        </h3>
+                        <p className="mt-1 text-xs font-bold text-green-1 opacity-90 dark:text-green-3">
+                          Lifewood Data Technology
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="h-10 w-10 rounded-2xl border border-paper bg-white/70 font-black text-dark-serpent transition-opacity hover:opacity-80 dark:border-green-800 dark:bg-green-900/20 dark:text-white"
+                      aria-label="Close"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="max-h-[70vh] overflow-auto p-6">{children}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

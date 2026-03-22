@@ -36,9 +36,24 @@ CREATE TABLE IF NOT EXISTS public.inquiries (
 
 ALTER TABLE inquiries ENABLE ROW LEVEL SECURITY;
 
--- Admin RLS
-CREATE POLICY "Admin reads all inquiries" ON inquiries FOR ALL 
-USING (true);  -- Admin bypass (service_role used)
+-- Grant anon users permission to insert (for public contact form)
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT INSERT ON public.inquiries TO anon, authenticated;
+GRANT SELECT, UPDATE ON public.inquiries TO authenticated;
+
+-- Allow anyone to submit an inquiry (contact form)
+DROP POLICY IF EXISTS "Anyone can submit inquiry" ON inquiries;
+CREATE POLICY "Anyone can submit inquiry" ON inquiries FOR INSERT
+WITH CHECK (true);
+
+-- Admins can read and update all inquiries
+DROP POLICY IF EXISTS "Admin reads all inquiries" ON inquiries;
+CREATE POLICY "Admin reads all inquiries" ON inquiries FOR SELECT
+USING (true);
+
+DROP POLICY IF EXISTS "Admin updates inquiries" ON inquiries;
+CREATE POLICY "Admin updates inquiries" ON inquiries FOR UPDATE
+USING (true);
 
 -- 5. FORCE CREATE/UPDATE ADMIN PROFILE
 INSERT INTO profiles (id, username, is_admin)

@@ -3,6 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { Language, TranslationSet, View } from '../types';
 import { useAuth } from './AuthProvider';
 import { useProfile } from '../hooks/useProfile';
+import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient';
+
+type Notification = {
+  id: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+  link: string | null;
+};
 
 interface NavbarProps {
   currentLang: Language;
@@ -35,7 +44,10 @@ const Navbar: React.FC<NavbarProps> = ({
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const notifRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -83,6 +95,100 @@ const Navbar: React.FC<NavbarProps> = ({
     setProfileMenuOpen(false);
   }, [mobileMenuOpen]);
 
+  // Fetch notifications + real-time subscription
+  useEffect(() => {
+    if (!user?.email || !isSupabaseConfigured) return;
+    const supabase = getSupabase();
+    let cancelled = false;
+
+    const refreshNotifications = async () => {
+      const { data } = await supabase
+        .from('notifications')
+        .select('id, message, read, created_at, link')
+        .or(`user_id.eq.${user.id},user_email.eq.${user.email}`)
+        .order('created_at', { ascending: false });
+
+      if (!cancelled) {
+        setNotifications((data as Notification[]) || []);
+      }
+    };
+
+    void refreshNotifications();
+
+    const channels = [
+      supabase
+      .channel(`notifications:user:${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${user.id}`,
+      }, payload => {
+        setNotifications(prev => [payload.new as Notification, ...prev]);
+      })
+      .subscribe(),
+      supabase
+      .channel(`notifications:email:${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_email=eq.${user.email}`,
+      }, payload => {
+        setNotifications(prev => [payload.new as Notification, ...prev]);
+      })
+      .subscribe(),
+    ];
+
+    const onVisibilityRefresh = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshNotifications();
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void refreshNotifications();
+    }, 30000);
+
+    window.addEventListener('focus', onVisibilityRefresh);
+    document.addEventListener('visibilitychange', onVisibilityRefresh);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', onVisibilityRefresh);
+      document.removeEventListener('visibilitychange', onVisibilityRefresh);
+      channels.forEach(channel => supabase.removeChannel(channel));
+    };
+  }, [user?.email, user?.id]);
+
+  // Close notif dropdown on outside click
+  useEffect(() => {
+    const onPointerDown = (e: PointerEvent) => {
+      if (!notifRef.current) return;
+      if (notifRef.current.contains(e.target as Node)) return;
+      setNotifOpen(false);
+    };
+    if (notifOpen) {
+      window.addEventListener('pointerdown', onPointerDown);
+      return () => window.removeEventListener('pointerdown', onPointerDown);
+    }
+  }, [notifOpen]);
+
+  const markAllRead = async () => {
+    if (!user?.email || !isSupabaseConfigured) return;
+    const supabase = getSupabase();
+    await supabase.from('notifications').update({ read: true }).or(`user_id.eq.${user.id},user_email.eq.${user.email}`).eq('read', false);
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const markOneRead = async (notificationId: string) => {
+    if (!isSupabaseConfigured) return;
+    const supabase = getSupabase();
+    await supabase.from('notifications').update({ read: true }).eq('id', notificationId);
+    setNotifications(prev => prev.map(item => item.id === notificationId ? { ...item, read: true } : item));
+  };
+
   const greeting = useMemo(() => {
     if (!user) return null;
     const hours = new Date().getHours();
@@ -90,7 +196,10 @@ const Navbar: React.FC<NavbarProps> = ({
       hours >= 5 && hours <= 11 ? 'Good morning' : hours >= 12 && hours <= 16 ? 'Good afternoon' : 'Good evening';
 
     const name = displayName || 'there';
-    return `Hey, ${name}! ${timeGreeting}`;
+    return {
+      headline: `Hey, ${name}!`,
+      subline: timeGreeting,
+    };
   }, [displayName, user]);
 
   const initials = useMemo(() => {
@@ -110,11 +219,72 @@ const Navbar: React.FC<NavbarProps> = ({
     if (authLoading || profileLoading) return null;
     if (!user) return null;
 
+    const unread = notifications.filter(n => !n.read).length;
+
     return (
-      <div className="flex items-center gap-4 min-w-0">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="relative" ref={notifRef}>
+          <button
+            onClick={() => setNotifOpen(v => !v)}
+            className="relative w-10 h-10 flex items-center justify-center border-2 border-paper dark:border-green-800 rounded-full hover:bg-paper dark:hover:bg-green-900 transition-all text-dark-serpent dark:text-white"
+            aria-label="Notifications"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V4a1 1 0 10-2 0v1.083A6 6 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            {unread > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+          </button>
+
+          {notifOpen && (
+            <div className="absolute right-0 mt-3 w-80 rounded-2xl border border-paper dark:border-green-900/30 bg-white dark:bg-dark-serpent shadow-2xl overflow-hidden z-50">
+              <div className="px-4 py-3 border-b border-paper dark:border-green-800 flex items-center justify-between">
+                <span className="font-black text-sm text-dark-serpent dark:text-white">Notifications</span>
+                {unread > 0 && (
+                  <button onClick={markAllRead} className="text-[11px] font-bold text-castleton-green dark:text-saffron hover:opacity-70 transition-opacity">
+                    Mark all as read
+                  </button>
+                )}
+              </div>
+              <div className="max-h-72 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-xs text-[#8a9a8a] font-medium">No notifications yet</div>
+                ) : notifications.map(n => (
+                  <button
+                    key={n.id}
+                    type="button"
+                    onClick={() => {
+                      if (!n.read) void markOneRead(n.id);
+                      setNotifOpen(false);
+                      if (n.link) navigate(n.link);
+                    }}
+                    className={`w-full text-left px-4 py-3 border-b border-paper/50 dark:border-green-900/30 last:border-0 ${!n.read ? 'bg-castleton-green/5 dark:bg-green-900/20' : ''}`}
+                  >
+                    <div className="flex items-start gap-2">
+                      {!n.read && <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-castleton-green dark:bg-saffron shrink-0" />}
+                      <div className={!n.read ? '' : 'pl-3.5'}>
+                        <p className="text-xs text-dark-serpent dark:text-white font-semibold leading-relaxed">{n.message}</p>
+                        <p className="text-[10px] text-[#8a9a8a] mt-1">{new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {greeting ? (
-          <div className="hidden xl:block text-xs font-bold text-green-1 dark:text-green-4/80 whitespace-nowrap max-w-[260px] truncate">
-            {greeting}
+          <div className="hidden xl:flex min-w-0 flex-col justify-center leading-none text-left">
+            <span className="max-w-[180px] truncate text-[13px] font-black text-dark-serpent dark:text-white">
+              {greeting.headline}
+            </span>
+            <span className="mt-1 max-w-[180px] truncate text-[11px] font-semibold text-green-1 dark:text-green-4/80">
+              {greeting.subline}
+            </span>
           </div>
         ) : null}
 
@@ -162,7 +332,7 @@ const Navbar: React.FC<NavbarProps> = ({
                     }}
                     className="w-full text-left px-4 py-3 rounded-2xl font-black text-sm text-saffron bg-saffron/10 hover:bg-saffron/20 transition-colors"
                   >
-                    🛠️ Admin Dashboard
+                    Admin Dashboard
                   </button>
                 )}
                 <div className="h-px my-1 bg-castleton-green/10 dark:bg-green-800" />
@@ -190,13 +360,13 @@ const Navbar: React.FC<NavbarProps> = ({
         ? 'bg-ui-base/95 backdrop-blur-xl shadow-lg border-ui-border/60' 
         : 'bg-ui-base/80 backdrop-blur-md border-transparent'
     }`}>
-      <div className="max-w-[1560px] mx-auto px-6 md:px-12 flex items-center justify-between h-full gap-0 relative">
-        <button onClick={handleLogoClick} className="flex items-center gap-2 group shrink-0 z-10">
+      <div className="max-w-[1760px] mx-auto px-6 md:px-10 grid grid-cols-[auto_1fr_auto] items-center h-full gap-4">
+        <button onClick={handleLogoClick} className="flex items-center gap-2 group shrink-0">
           <div className="relative">
-            <img 
-              src="/assets/logo.png" 
-              alt="Lifewood" 
-              className="h-10 w-auto object-contain dark:brightness-0 dark:invert transition-all" 
+            <img
+              src="/assets/logo.png"
+              alt="Lifewood"
+              className="h-10 w-auto object-contain dark:brightness-0 dark:invert transition-all"
             />
             {isPortal && (
               <span className="absolute -bottom-2 -right-2 text-[9px] font-black uppercase tracking-[0.2em] text-saffron bg-dark-serpent px-1 rounded">{translations.portalChip}</span>
@@ -204,7 +374,7 @@ const Navbar: React.FC<NavbarProps> = ({
           </div>
         </button>
 
-        <ul className="hidden lg:flex items-center gap-6 xl:gap-8 font-bold text-[0.9rem] text-ui-text absolute left-1/2 -translate-x-1/2">
+        <ul className="hidden lg:flex items-center justify-center gap-5 xl:gap-7 font-bold text-[0.9rem] text-ui-text">
           {isPortal ? (
             <>
               <li><button onClick={() => onNavClick('portal-home')} className="hover:text-ui-secondary transition-colors whitespace-nowrap">{translations.portalNavHome}</button></li>
@@ -223,11 +393,12 @@ const Navbar: React.FC<NavbarProps> = ({
               <li><button onClick={() => onNavClick('services')} className="hover:text-ui-secondary transition-colors">{translations.navServices}</button></li>
               <li><button onClick={() => onNavClick('impact')} className="hover:text-ui-secondary transition-colors">{translations.navImpact}</button></li>
               <li><button onClick={() => onNavClick('careers')} className="hover:text-ui-secondary transition-colors">{translations.navCareers}</button></li>
+              <li><button onClick={() => onNavClick('news')} className="hover:text-ui-secondary transition-colors">News</button></li>
             </>
           )}
         </ul>
 
-        <div className="flex items-center justify-end gap-3 shrink-0 z-10">
+        <div className="flex items-center justify-end gap-3">
 
           <button
             onClick={() => onNavClick(isPortal ? 'portal-start' : 'contact')}
@@ -237,12 +408,17 @@ const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <div className="relative">
-            <button 
+            <button
               onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-              className="flex items-center gap-2 px-3 py-2 border-2 border-paper dark:border-green-800 rounded-lg hover:border-castleton-green dark:hover:border-saffron transition-all text-sm font-bold text-dark-serpent dark:text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-paper text-dark-serpent transition-all hover:border-castleton-green hover:bg-paper dark:border-green-800 dark:text-white dark:hover:border-saffron dark:hover:bg-green-900"
+              aria-label={`Change language. Current language: ${activeLangLabel}`}
             >
-              <span>🌐 {activeLangLabel}</span>
-              <span className={`text-[10px] transition-transform ${langDropdownOpen ? 'rotate-180' : ''}`}>▼</span>
+              <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c4.97 0 9 4.03 9 9s-4.03 9-9 9-9-4.03-9-9 4.03-9 9-9Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h18" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3a14.5 14.5 0 0 1 0 18" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3a14.5 14.5 0 0 0 0 18" />
+              </svg>
             </button>
             
             {langDropdownOpen && (
@@ -293,7 +469,10 @@ const Navbar: React.FC<NavbarProps> = ({
         <div className="lg:hidden absolute top-full left-0 w-full bg-white dark:bg-dark-serpent border-b dark:border-green-900 py-8 px-6 shadow-2xl animate-in fade-in slide-in-from-top-4 duration-300">
           <ul className="flex flex-col gap-6 font-bold text-lg text-dark-serpent dark:text-white">
             {!authLoading && user && greeting ? (
-              <li className="text-sm font-bold text-green-1 dark:text-green-3 opacity-90">{greeting}</li>
+              <li className="text-sm text-green-1 dark:text-green-3 opacity-90">
+                <div className="font-black">{greeting.headline}</div>
+                <div className="mt-1 text-xs font-semibold">{greeting.subline}</div>
+              </li>
             ) : null}
             {isPortal ? (
               <>
@@ -315,6 +494,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 <li><button onClick={() => { onNavClick('services'); setMobileMenuOpen(false); }}>{translations.navServices}</button></li>
                 <li><button onClick={() => { onNavClick('impact'); setMobileMenuOpen(false); }}>{translations.navImpact}</button></li>
                 <li><button onClick={() => { onNavClick('careers'); setMobileMenuOpen(false); }}>{translations.navCareers}</button></li>
+                <li><button onClick={() => { onNavClick('news'); setMobileMenuOpen(false); }}>News</button></li>
                 <li><button onClick={() => { onNavClick('contact'); setMobileMenuOpen(false); }} className="inline-block bg-saffron text-dark-serpent px-8 py-3 rounded-full text-center">{translations.navContact}</button></li>
               </>
             )}

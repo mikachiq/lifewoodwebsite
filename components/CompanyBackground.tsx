@@ -129,26 +129,17 @@ const CompanyBackground: React.FC<CompanyBackgroundProps> = ({ translations }) =
             </div>
 
             <div className="space-y-10">
-              <div className="flex gap-8 group">
-                <div className="w-16 h-16 bg-white dark:bg-white/5 rounded-3xl flex items-center justify-center text-3xl shadow-xl transition-transform group-hover:scale-110">🏆</div>
-                <div>
-                  <h4 className="text-2xl font-black text-dark-serpent dark:text-white mb-2">{translations.bgPoint1Title}</h4>
-                  <p className="text-lg text-green-2 dark:text-green-4 font-medium leading-relaxed">{translations.bgPoint1Text}</p>
-                </div>
+              <div>
+                <h4 className="text-2xl font-black text-dark-serpent dark:text-white mb-2">{translations.bgPoint1Title}</h4>
+                <p className="text-lg text-green-2 dark:text-green-4 font-medium leading-relaxed">{translations.bgPoint1Text}</p>
               </div>
-              <div className="flex gap-8 group">
-                <div className="w-16 h-16 bg-white dark:bg-white/5 rounded-3xl flex items-center justify-center text-3xl shadow-xl transition-transform group-hover:scale-110">🌍</div>
-                <div>
-                  <h4 className="text-2xl font-black text-dark-serpent dark:text-white mb-2">{translations.bgPoint2Title}</h4>
-                  <p className="text-lg text-green-2 dark:text-green-4 font-medium leading-relaxed">{translations.bgPoint2Text}</p>
-                </div>
+              <div>
+                <h4 className="text-2xl font-black text-dark-serpent dark:text-white mb-2">{translations.bgPoint2Title}</h4>
+                <p className="text-lg text-green-2 dark:text-green-4 font-medium leading-relaxed">{translations.bgPoint2Text}</p>
               </div>
-              <div className="flex gap-8 group">
-                <div className="w-16 h-16 bg-white dark:bg-white/5 rounded-3xl flex items-center justify-center text-3xl shadow-xl transition-transform group-hover:scale-110">🛡️</div>
-                <div>
-                  <h4 className="text-2xl font-black text-dark-serpent dark:text-white mb-2">{translations.bgPoint3Title}</h4>
-                  <p className="text-lg text-green-2 dark:text-green-4 font-medium leading-relaxed">{translations.bgPoint3Text}</p>
-                </div>
+              <div>
+                <h4 className="text-2xl font-black text-dark-serpent dark:text-white mb-2">{translations.bgPoint3Title}</h4>
+                <p className="text-lg text-green-2 dark:text-green-4 font-medium leading-relaxed">{translations.bgPoint3Text}</p>
               </div>
             </div>
           </div>

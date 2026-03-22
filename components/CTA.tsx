@@ -1,5 +1,6 @@
 ﻿import React, { useState, useRef } from 'react';
 import { TranslationSet } from '../types';
+import { getSupabase } from '../lib/supabaseClient';
 
 interface CTAProps {
   translations: TranslationSet;
@@ -9,11 +10,39 @@ interface CTAProps {
 const CTA: React.FC<CTAProps> = ({ translations, onPortalClick }) => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [subject, setSubject] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
+    setIsLoading(true);
+    setError(null);
+    try {
+      const supabase = getSupabase();
+      const { error: insertError } = await supabase.from('inquiries').insert({
+        name,
+        email,
+        message,
+        context: 'contact',
+        position: subject,
+        status: 'new',
+      });
+      if (insertError) {
+        console.error('[CTA] Insert error:', insertError);
+        throw insertError;
+      }
+      setIsSubmitted(true);
+      setName(""); setEmail(""); setMessage(""); setSubject("");
+    } catch (err) {
+      console.error('[CTA] Submit failed:', err);
+      setError("Failed to send message. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const socialLinks = [
@@ -107,15 +136,17 @@ const CTA: React.FC<CTAProps> = ({ translations, onPortalClick }) => {
                 >
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <input 
-                        type="text" required placeholder={translations.pContFormNamePlaceholder} 
-                        className="w-full p-5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs text-dark-serpent dark:text-white font-bold text-sm" 
+                      <input
+                        type="text" required placeholder={translations.pContFormNamePlaceholder}
+                        value={name} onChange={e => setName(e.target.value)}
+                        className="w-full p-5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs text-dark-serpent dark:text-white font-bold text-sm"
                       />
                     </div>
                     <div className="space-y-2">
-                      <input 
-                        type="email" required placeholder={translations.pContFormEmailPlaceholder} 
-                        className="w-full p-5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs text-dark-serpent dark:text-white font-bold text-sm" 
+                      <input
+                        type="email" required placeholder={translations.pContFormEmailPlaceholder}
+                        value={email} onChange={e => setEmail(e.target.value)}
+                        className="w-full p-5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs text-dark-serpent dark:text-white font-bold text-sm"
                       />
                     </div>
                   </div>
@@ -141,16 +172,21 @@ const CTA: React.FC<CTAProps> = ({ translations, onPortalClick }) => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <textarea 
-                      required placeholder={translations.contactMessagePlaceholder} rows={4} 
+                    <textarea
+                      required placeholder={translations.contactMessagePlaceholder} rows={4}
+                      value={message} onChange={e => setMessage(e.target.value)}
                       className="w-full p-5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs text-dark-serpent dark:text-white font-bold text-sm"
                     ></textarea>
                   </div>
-                  <button 
+                  {error && (
+                    <p className="text-red-500 text-sm font-bold">{error}</p>
+                  )}
+                  <button
                     type="submit"
-                    className="w-full py-5 bg-castleton-green text-white font-black text-xl rounded-2xl hover:bg-green-1 transition-all shadow-2xl shadow-castleton-green/30"
+                    disabled={isLoading}
+                    className="w-full py-5 bg-castleton-green text-white font-black text-xl rounded-2xl hover:bg-green-1 transition-all shadow-2xl shadow-castleton-green/30 disabled:opacity-60"
                   >
-                    {translations.contactBtn}
+                    {isLoading ? 'Sending...' : translations.contactBtn}
                   </button>
                 </form>
               </div>

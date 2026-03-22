@@ -4,10 +4,11 @@ import { useAuth } from '../components/AuthProvider';
 import { useToast } from '../components/ToastProvider';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
+const PROFILE_REFRESH_EVENT = 'lifewood:profile-refresh';
+
 type ProfileRow = {
   id: string;
   username: string | null;
-  bio: string | null;
   avatar_url: string | null;
   updated_at: string | null;
 };
@@ -17,6 +18,10 @@ async function getSignedAvatarUrl(path: string) {
   const { data, error } = await supabase.storage.from('avatars').createSignedUrl(path, 60 * 60);
   if (error) throw error;
   return data.signedUrl;
+}
+
+function broadcastProfileRefresh() {
+  window.dispatchEvent(new Event(PROFILE_REFRESH_EVENT));
 }
 
 export default function ProfilePage() {
@@ -29,12 +34,10 @@ export default function ProfilePage() {
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
 
   const [editingUsername, setEditingUsername] = useState(false);
-  const [editingBio, setEditingBio] = useState(false);
   const [editingEmail, setEditingEmail] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
 
   const [usernameDraft, setUsernameDraft] = useState('');
-  const [bioDraft, setBioDraft] = useState('');
   const [emailDraft, setEmailDraft] = useState('');
 
   const [currentPassword, setCurrentPassword] = useState('');
@@ -43,28 +46,31 @@ export default function ProfilePage() {
 
   const initials = useMemo(() => {
     const email = user?.email ?? '';
-    const a = (profile?.username ?? email).trim();
-    if (!a) return 'U';
-    return a
+    const source = (profile?.username ?? email).trim();
+    if (!source) return 'U';
+    return source
       .split(/\s+/)
       .slice(0, 2)
-      .map(s => s[0]?.toUpperCase())
+      .map(part => part[0]?.toUpperCase())
       .join('');
   }, [profile?.username, user?.email]);
 
   useEffect(() => {
     const load = async () => {
       if (!user) return;
+
+      const hasCachedProfile = profile?.id === user.id;
+
       try {
         if (!isSupabaseConfigured) throw new Error('Supabase is not configured.');
         const supabase = getSupabase();
-        setLoading(true);
+        setLoading(!hasCachedProfile);
+
         const { data, error } = await supabase
           .from('profiles')
           .select(`
             id,
             username,
-            bio,
             avatar_url,
             is_admin,
             updated_at
@@ -73,32 +79,37 @@ export default function ProfilePage() {
           .single();
 
         if (error && error.code === 'PGRST116') {
-        const { data: created, error: insertError } = await supabase
+          const { data: created, error: insertError } = await supabase
             .from('profiles')
-            .insert({ id: user.id, username: user.user_metadata?.username ?? null, bio: null, avatar_url: null, is_admin: false })
+            .insert({
+              id: user.id,
+              username: user.user_metadata?.username ?? null,
+              avatar_url: null,
+              is_admin: false,
+            })
             .select(`
               id,
               username,
-              bio,
               avatar_url,
               is_admin,
               updated_at
             `)
             .single();
+
           if (insertError) throw insertError;
+
           setProfile(created);
           setUsernameDraft(created.username ?? '');
-          setBioDraft(created.bio ?? '');
           setEmailDraft(user.email ?? '');
           setAvatarSrc(null);
           return;
         }
 
         if (error) throw error;
+
         setProfile(data);
-        setUsernameDraft(data.username ?? '');
-        setBioDraft(data.bio ?? '');
-        setEmailDraft(user.email ?? '');
+        setUsernameDraft(current => (editingUsername ? current : data.username ?? ''));
+        setEmailDraft(current => (editingEmail ? current : user.email ?? ''));
 
         if (data.avatar_url) {
           const signed = await getSignedAvatarUrl(data.avatar_url);
@@ -107,17 +118,20 @@ export default function ProfilePage() {
           setAvatarSrc(null);
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to load profile.';
-        pushToast({ type: 'error', message });
+        if (!hasCachedProfile) {
+          const message = err instanceof Error ? err.message : 'Failed to load profile.';
+          pushToast({ type: 'error', message });
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    load();
-  }, [pushToast, user]);
+    void load();
+  }, [editingEmail, editingUsername, profile?.id, pushToast, user?.email, user?.id, user?.user_metadata?.username]);
 
   if (!user) return null;
+
   if (!isSupabaseConfigured) {
     return (
       <div className="min-h-[calc(100vh-120px)] flex items-center justify-center px-4 py-16 bg-white dark:bg-[#0a1612]">
@@ -125,9 +139,9 @@ export default function ProfilePage() {
           <div className="bg-paper/60 dark:bg-dark-serpent/50 rounded-[40px] p-8 md:p-10">
             <h1 className="text-2xl font-black text-dark-serpent dark:text-white">Supabase not configured</h1>
             <p className="mt-3 text-sm font-bold text-green-1 dark:text-green-3">
-            Create a <span className="font-black">.env</span> file and set{' '}
-            <span className="font-black">VITE_SUPABASE_URL</span> and <span className="font-black">VITE_SUPABASE_ANON_KEY</span>,
-            then restart <span className="font-black">npm run dev</span>.
+              Create a <span className="font-black">.env</span> file and set{' '}
+              <span className="font-black">VITE_SUPABASE_URL</span> and <span className="font-black">VITE_SUPABASE_ANON_KEY</span>,
+              then restart <span className="font-black">npm run dev</span>.
             </p>
           </div>
         </div>
@@ -140,38 +154,22 @@ export default function ProfilePage() {
       const supabase = getSupabase();
       const value = usernameDraft.trim();
       if (!value) throw new Error('Username is required.');
+
       const { data, error } = await supabase
         .from('profiles')
         .update({ username: value, updated_at: new Date().toISOString() })
         .eq('id', user.id)
-        .select('id, username, bio, avatar_url, updated_at')
+        .select('id, username, avatar_url, updated_at')
         .single();
+
       if (error) throw error;
+
       setProfile(data);
+      broadcastProfileRefresh();
       pushToast({ type: 'success', message: 'Username updated.' });
       setEditingUsername(false);
     } catch (err) {
       pushToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to update username.' });
-    }
-  };
-
-  const saveBio = async () => {
-    try {
-      const supabase = getSupabase();
-      const value = bioDraft.trim();
-      if (value.length > 200) throw new Error('Bio must be 200 characters or less.');
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({ bio: value || null, updated_at: new Date().toISOString() })
-        .eq('id', user.id)
-        .select('id, username, bio, avatar_url, updated_at')
-        .single();
-      if (error) throw error;
-      setProfile(data);
-      pushToast({ type: 'success', message: 'Bio updated.' });
-      setEditingBio(false);
-    } catch (err) {
-      pushToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to update bio.' });
     }
   };
 
@@ -180,6 +178,7 @@ export default function ProfilePage() {
       const supabase = getSupabase();
       const value = emailDraft.trim();
       if (!value) throw new Error('Email is required.');
+
       const { error } = await supabase.auth.updateUser({ email: value });
       if (error) throw error;
 
@@ -239,13 +238,15 @@ export default function ProfilePage() {
         .from('profiles')
         .update({ avatar_url: path, updated_at: new Date().toISOString() })
         .eq('id', user.id)
-        .select('id, username, bio, avatar_url, updated_at')
+        .select('id, username, avatar_url, updated_at')
         .single();
       if (error) throw error;
+
       setProfile(data);
 
       const signed = await getSignedAvatarUrl(path);
       setAvatarSrc(signed);
+      broadcastProfileRefresh();
       pushToast({ type: 'success', message: 'Profile picture updated.' });
     } catch (err) {
       pushToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to upload avatar.' });
@@ -291,7 +292,7 @@ export default function ProfilePage() {
         </div>
 
         {loading ? (
-          <div className="text-sm font-bold text-green-2 dark:text-green-4/80">Loading…</div>
+          <div className="text-sm font-bold text-green-2 dark:text-green-4/80">Loading...</div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className={`lg:col-span-1 p-6 ${cardClass}`}>
@@ -319,16 +320,13 @@ export default function ProfilePage() {
                   type="file"
                   accept="image/*"
                   onChange={e => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    void uploadAvatar(f);
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    void uploadAvatar(file);
                     e.currentTarget.value = '';
                   }}
                   className="block w-full text-sm font-semibold text-green-1 dark:text-green-4 file:mr-4 file:py-2.5 file:px-4 file:rounded-2xl file:border-0 file:bg-castleton-green file:text-white file:font-black hover:file:opacity-90"
                 />
-                <div className="mt-2 text-xs font-semibold text-green-2 dark:text-green-4/80">
-                  Stored in Supabase Storage bucket: avatars
-                </div>
               </div>
             </div>
 
@@ -338,15 +336,11 @@ export default function ProfilePage() {
                   <div>
                     <div className={labelClass}>Username</div>
                     {!editingUsername ? (
-                      <div className="mt-2 text-sm font-bold text-dark-serpent dark:text-white">{profile?.username || '—'}</div>
+                      <div className="mt-2 text-sm font-bold text-dark-serpent dark:text-white">{profile?.username || '-'}</div>
                     ) : null}
                   </div>
                   {!editingUsername ? (
-                    <button
-                      type="button"
-                      onClick={() => setEditingUsername(true)}
-                      className={outlineBtnClass}
-                    >
+                    <button type="button" onClick={() => setEditingUsername(true)} className={outlineBtnClass}>
                       Edit
                     </button>
                   ) : null}
@@ -361,11 +355,7 @@ export default function ProfilePage() {
                       type="text"
                     />
                     <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => void saveUsername()}
-                        className={primaryBtnClass}
-                      >
+                      <button type="button" onClick={() => void saveUsername()} className={primaryBtnClass}>
                         Save
                       </button>
                       <button
@@ -392,11 +382,7 @@ export default function ProfilePage() {
                     ) : null}
                   </div>
                   {!editingEmail ? (
-                    <button
-                      type="button"
-                      onClick={() => setEditingEmail(true)}
-                      className={outlineBtnClass}
-                    >
+                    <button type="button" onClick={() => setEditingEmail(true)} className={outlineBtnClass}>
                       Edit
                     </button>
                   ) : null}
@@ -415,11 +401,7 @@ export default function ProfilePage() {
                       Updating email requires re-verification.
                     </div>
                     <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => void saveEmail()}
-                        className={primaryBtnClass}
-                      >
+                      <button type="button" onClick={() => void saveEmail()} className={primaryBtnClass}>
                         Save
                       </button>
                       <button
@@ -440,70 +422,13 @@ export default function ProfilePage() {
               <div className={`p-6 ${cardClass}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className={labelClass}>Bio</div>
-                    {!editingBio ? (
-                      <div className="mt-2 text-sm font-bold text-dark-serpent dark:text-white whitespace-pre-wrap">
-                        {profile?.bio || '—'}
-                      </div>
-                    ) : null}
-                  </div>
-                  {!editingBio ? (
-                    <button
-                      type="button"
-                      onClick={() => setEditingBio(true)}
-                      className={outlineBtnClass}
-                    >
-                      Edit
-                    </button>
-                  ) : null}
-                </div>
-
-                {editingBio ? (
-                  <div className="mt-4 space-y-3">
-                    <textarea
-                      value={bioDraft}
-                      onChange={e => setBioDraft(e.target.value)}
-                      className={`${inputClass} min-h-[120px]`}
-                      maxLength={200}
-                    />
-                    <div className="text-xs font-semibold text-green-2 dark:text-green-4/80">{bioDraft.length}/200</div>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => void saveBio()}
-                        className={primaryBtnClass}
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setBioDraft(profile?.bio ?? '');
-                          setEditingBio(false);
-                        }}
-                        className={outlineBtnClass}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className={`p-6 ${cardClass}`}>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
                     <div className={labelClass}>Password</div>
                     {!editingPassword ? (
                       <div className="mt-2 text-sm font-bold text-dark-serpent dark:text-white">••••••••</div>
                     ) : null}
                   </div>
                   {!editingPassword ? (
-                    <button
-                      type="button"
-                      onClick={() => setEditingPassword(true)}
-                      className={outlineBtnClass}
-                    >
+                    <button type="button" onClick={() => setEditingPassword(true)} className={outlineBtnClass}>
                       Edit
                     </button>
                   ) : null}
@@ -536,11 +461,7 @@ export default function ProfilePage() {
                       autoComplete="new-password"
                     />
                     <div className="flex items-center gap-3 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => void savePassword()}
-                        className={primaryBtnClass}
-                      >
+                      <button type="button" onClick={() => void savePassword()} className={primaryBtnClass}>
                         Save
                       </button>
                       <button

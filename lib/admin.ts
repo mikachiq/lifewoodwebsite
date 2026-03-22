@@ -5,11 +5,38 @@ export type Inquiry = {
   created_at: string;
   email: string;
   name: string;
-  organization: string | null;
-  position: string | null;
   message: string;
   context: 'contact' | 'career' | 'project';
-  status: 'new' | 'read' | 'resolved' | 'under review' | 'shortlisted' | 'rejected' | 'reviewed' | 'in progress';
+  status: 'new' | 'contacted' | 'closed';
+  position: string | null;
+  organization: string | null;
+  // career fields
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  country: string | null;
+  city: string | null;
+  experience: string | null;
+  work_location: string | null;
+  availability: string | null;
+  languages: string | null;
+  skills: string | null;
+  cover_letter: string | null;
+  linkedin: string | null;
+  portfolio: string | null;
+  additional_info: string | null;
+  university: string | null;
+  course_program: string | null;
+  internship_hours: string | null;
+  // project fields
+  role: string | null;
+  service: string | null;
+  engagement_model: string | null;
+  data_volume: string | null;
+  tech_stack: string | null;
+  success_criteria: string | null;
+  attachment_url: string | null;
+  attachment_name: string | null;
 };
 
 export type InquiryStats = {
@@ -24,7 +51,7 @@ export async function getAllInquiries(): Promise<Inquiry[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('inquiries')
-    .select('id, created_at, email, name, organization, position, message, context, status')
+    .select('id, created_at, email, name, message, context, status, position, organization, first_name, last_name, phone, country, city, experience, work_location, availability, languages, skills, cover_letter, linkedin, portfolio, additional_info, university, course_program, internship_hours, role, service, engagement_model, data_volume, tech_stack, success_criteria, attachment_url, attachment_name')
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -76,5 +103,16 @@ export async function updateInquiryStatus(id: string, status: string) {
     .eq('id', id);
 
   if (error) throw error;
+}
+
+export async function deleteInquiry(id: string) {
+  const supabase = getSupabase();
+  const { error, count } = await supabase
+    .from('inquiries')
+    .delete({ count: 'exact' })
+    .eq('id', id);
+
+  if (error) throw error;
+  if (count === 0) throw new Error('Delete blocked — check Supabase RLS policies for inquiries.');
 }
 

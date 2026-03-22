@@ -10,6 +10,7 @@ import { isValidEmail, passwordMeetsRules } from '../lib/validation';
 type Field =
   | 'firstName'
   | 'lastName'
+  | 'username'
   | 'email'
   | 'password'
   | 'confirmPassword'
@@ -18,6 +19,7 @@ type Field =
 type FormState = {
   firstName: string;
   lastName: string;
+  username: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -36,6 +38,7 @@ export default function SignupPage() {
   const [form, setForm] = useState<FormState>({
     firstName: '',
     lastName: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -45,6 +48,7 @@ export default function SignupPage() {
   const [touched, setTouched] = useState<Record<Field, boolean>>({
     firstName: false,
     lastName: false,
+    username: false,
     email: false,
     password: false,
     confirmPassword: false,
@@ -56,6 +60,8 @@ export default function SignupPage() {
 
     if (!form.firstName.trim()) errors.firstName = 'First name is required.';
     if (!form.lastName.trim()) errors.lastName = 'Last name is required.';
+    if (!form.username.trim()) errors.username = 'Username is required.';
+    else if (!/^[a-zA-Z0-9_]{3,30}$/.test(form.username.trim())) errors.username = 'Username must be 3–30 characters and may only contain letters, numbers, or underscores.';
     if (!form.email.trim()) errors.email = 'Email is required.';
     else if (!isValidEmail(form.email.trim())) errors.email = 'Enter a valid email (e.g. user@example.com).';
 
@@ -134,6 +140,7 @@ export default function SignupPage() {
     setTouched({
       firstName: true,
       lastName: true,
+      username: true,
       email: true,
       password: true,
       confirmPassword: true,
@@ -156,7 +163,7 @@ export default function SignupPage() {
             first_name: form.firstName.trim(),
             last_name: form.lastName.trim(),
             full_name: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
-            username: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
+            username: form.username.trim(),
           },
         },
       });
@@ -237,6 +244,29 @@ export default function SignupPage() {
                   <div className="mt-2 text-xs font-bold text-red-700 dark:text-red-200">{errorFor('lastName')}</div>
                 ) : null}
               </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-85 mb-2">
+                Username
+              </label>
+              <input
+                value={form.username}
+                onChange={e => setForm(prev => ({ ...prev, username: e.target.value }))}
+                onBlur={() => setTouched(prev => ({ ...prev, username: true }))}
+                className="w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] text-dark-serpent dark:text-white rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors text-sm font-semibold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs"
+                type="text"
+                autoComplete="username"
+                placeholder="e.g. john_doe123"
+                required
+              />
+              {errorFor('username') ? (
+                <div className="mt-2 text-xs font-bold text-red-700 dark:text-red-200">{errorFor('username')}</div>
+              ) : (
+                <div className="mt-2 text-xs font-semibold text-green-2 dark:text-green-4/80">
+                  Letters, numbers, and underscores only. 3–30 characters.
+                </div>
+              )}
             </div>
 
             <div>

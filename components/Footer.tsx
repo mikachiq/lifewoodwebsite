@@ -164,7 +164,7 @@ const Footer: React.FC<FooterProps> = ({ translations, theme, onContactClick, on
               <li><a href="#company-background" onClick={(e) => { e.preventDefault(); onNavigateSection('company-background'); }} className="hover:text-saffron transition-colors">{translations.footerAboutUs}</a></li>
               <li><a href="#impact" onClick={(e) => { e.preventDefault(); onNavigateSection('impact'); }} className="hover:text-saffron transition-colors">{translations.footerOurTeam}</a></li>
               <li><a href="#careers-segment" onClick={(e) => { e.preventDefault(); onNavigateSection('careers'); }} className="hover:text-saffron transition-colors">{translations.footerCareers}</a></li>
-              <li><a href="#services-offered-section" onClick={(e) => { e.preventDefault(); onNavigateSection('services-offered-section'); }} className="hover:text-saffron transition-colors">{translations.footerNews}</a></li>
+              <li><a href="#news-section" onClick={(e) => { e.preventDefault(); onNavigateSection('news'); }} className="hover:text-saffron transition-colors">{translations.footerNews}</a></li>
             </ul>
           </div>
 

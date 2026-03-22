@@ -4,11 +4,13 @@ import { useAuth } from '../components/AuthProvider';
 import { useToast } from '../components/ToastProvider';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { isValidEmail } from '../lib/validation';
+import { useProfile } from '../hooks/useProfile';
 
 type LocationState = { from?: string; message?: string } | null;
 
 export default function LoginPage() {
   const { user } = useAuth();
+  const { loading: profileLoading, isAdmin } = useProfile();
   const { pushToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,7 +23,9 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(state?.message ?? null);
 
-  if (user) return <Navigate to="/" replace />;
+  if (user && !submitting && !profileLoading) {
+    return <Navigate to={isAdmin ? '/admin' : '/'} replace />;
+  }
   if (!isSupabaseConfigured) {
     return (
       <div className="min-h-[calc(100vh-120px)] flex items-center justify-center px-4 py-16 bg-white dark:bg-[#0a1612]">
@@ -76,7 +80,20 @@ export default function LoginPage() {
       }
 
       pushToast({ type: 'success', message: 'Signed in.' });
-      navigate(from, { replace: true });
+
+      // Redirect admins directly to the dashboard
+      const supabaseClient = getSupabase();
+      const { data: profileData } = await supabaseClient
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', signedInUser.id)
+        .single();
+
+      if (profileData?.is_admin) {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err) { // ✅ catch block was missing entirely
       const message = err instanceof Error ? err.message : 'Login failed. Please try again.';
       setError(message);

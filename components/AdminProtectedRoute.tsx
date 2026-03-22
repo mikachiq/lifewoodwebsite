@@ -8,6 +8,7 @@ export default function AdminProtectedRoute({ children }: { children: React.Reac
   const { loading: profileLoading, isAdmin, profile } = useProfile();
   const location = useLocation();
   const [blocking, setBlocking] = useState(false);
+  const hasResolvedAdminProfile = Boolean(user && profile?.id === user.id && isAdmin);
 
   useEffect(() => {
     if (!user) return;
@@ -16,18 +17,11 @@ export default function AdminProtectedRoute({ children }: { children: React.Reac
     signOut().finally(() => setBlocking(false));
   }, [user, signOut]);
 
-  // Wait until auth AND profile have both fully resolved
-  const stillLoading = authLoading || profileLoading || blocking;
-
-  // If user is logged in, don't redirect until profile has actually loaded
-  const profileSettled = !profileLoading && (profile !== null || !user);
+  const stillLoading = authLoading || blocking || (!hasResolvedAdminProfile && profileLoading);
+  const profileSettled = hasResolvedAdminProfile || (!profileLoading && (profile !== null || !user));
 
   if (stillLoading || !profileSettled) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-sm font-bold text-slate-600 dark:text-slate-400">Loading admin permissions…</div>
-      </div>
-    );
+    return null;
   }
 
   if (!user) {
