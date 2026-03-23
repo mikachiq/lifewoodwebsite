@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useProfile } from '../hooks/useProfile';
 import { useToast } from '../components/ToastProvider';
 import { deleteInquiry, getInquiryStats, getAllInquiries, Inquiry, InquiryStats, updateInquiryStatus } from '../lib/admin';
+import HRPipeline from '../components/admin/HRPipeline';
 import { exportInquiriesWorkbook } from '../lib/adminExport';
 import { getSupabase } from '../lib/supabaseClient';
 import { useConfirm } from '../components/ConfirmModal';
@@ -12,7 +13,7 @@ let cachedDashboardInquiries: Inquiry[] | null = null;
 
 const STATUS_OPTIONS = ['new', 'contacted', 'closed'] as const;
 type Status = typeof STATUS_OPTIONS[number];
-type NavSection = 'overview' | 'contacts' | 'applicants' | 'projects' | 'posts' | 'outbox';
+type NavSection = 'overview' | 'contacts' | 'applicants' | 'projects' | 'posts' | 'hiring';
 type AdminNotif = {
   id: string;
   type: string;
@@ -166,11 +167,12 @@ const NAV_ITEMS: { key: NavSection; label: string; icon: React.ReactNode; href?:
     ),
   },
   {
-    key: 'outbox',
-    label: 'Outbox',
+    key: 'hiring',
+    label: 'Hiring',
+    href: '/admin/hiring',
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4 20-7z"/>
+        <path d="M4 7h16M7 3v8M17 3v8M5 11h14a2 2 0 012 2v5a3 3 0 01-3 3H6a3 3 0 01-3-3v-5a2 2 0 012-2z" />
       </svg>
     ),
   },
@@ -197,7 +199,7 @@ const STAT_CARDS = (stats: InquiryStats | null) => [
     ),
   },
   {
-    label: 'Inquirers',
+    label: 'Applicants',
     value: stats?.applicants || 0,
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
@@ -225,7 +227,7 @@ const STAT_CARDS = (stats: InquiryStats | null) => [
   },
   {
     label: 'Closed',
-    value: 0,
+    value: stats?.closed || 0,
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
         <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
@@ -287,9 +289,6 @@ export default function AdminDashboardPage() {
   const [expandedMessageIds, setExpandedMessageIds] = useState<string[]>([]);
   const [emailBody, setEmailBody] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
-  const [outboxEmails, setOutboxEmails] = useState<{ id: string; to: string; subject: string | null; body: string | null; context: string | null; sent_at: string }[]>([]);
-  const [outboxLoading, setOutboxLoading] = useState(false);
-  const [outboxPreview, setOutboxPreview] = useState<{ html: string; subject: string } | null>(null);
   const [adminNotifs, setAdminNotifs] = useState<AdminNotif[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const { confirm, modal: confirmModal } = useConfirm();
@@ -352,20 +351,6 @@ export default function AdminDashboardPage() {
     setExpandedMessageIds([]);
   }, [activeSection, refreshKey]);
 
-  useEffect(() => {
-    if (activeSection !== 'outbox') return;
-    const supabase = getSupabase();
-    setOutboxLoading(true);
-    supabase
-      .from('simulated_emails')
-      .select('id, to, subject, body, context, sent_at')
-      .order('sent_at', { ascending: false })
-      .limit(50)
-      .then(({ data }) => {
-        setOutboxEmails(data || []);
-        setOutboxLoading(false);
-      });
-  }, [activeSection, refreshKey]);
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -397,9 +382,11 @@ export default function AdminDashboardPage() {
   }, [notifOpen]);
 
   const handleStatusChange = async (id: string, newStatus: Status) => {
+    const inquiry = inquiries.find(item => item.id === id);
+    if (!inquiry || inquiry.source === 'hr_applicants') return;
     try {
       setUpdatingId(id);
-      await updateInquiryStatus(id, newStatus);
+      await updateInquiryStatus(id, newStatus, inquiry.source);
       setInquiries(prev => {
         const next = prev.map(inq => inq.id === id ? { ...inq, status: newStatus } : inq);
         cachedDashboardInquiries = next;
@@ -420,7 +407,8 @@ export default function AdminDashboardPage() {
 
     try {
       setUpdatingId('bulk-delete');
-      await Promise.all(selectedInquiryIds.map(id => deleteInquiry(id)));
+      const selectedItems = inquiries.filter(item => selectedInquiryIds.includes(item.id));
+      await Promise.all(selectedItems.map(item => deleteInquiry(item.id, item.source)));
       setInquiries(prev => {
         const next = prev.filter(item => !selectedInquiryIds.includes(item.id));
         cachedDashboardInquiries = next;
@@ -460,7 +448,7 @@ export default function AdminDashboardPage() {
     applicants: 'Applicants',
     projects: 'Project Requests',
     posts: 'Posts',
-    outbox: 'Sent Emails',
+    hiring: 'Hiring',
   };
   const sectionSub: Record<NavSection, string> = {
     overview: 'Overview of all inquiries and submission activity.',
@@ -468,7 +456,7 @@ export default function AdminDashboardPage() {
     applicants: 'Career form submissions from applicants.',
     projects: 'Project client requests submitted through the Portal.',
     posts: 'Manage company news and announcements.',
-    outbox: 'Simulated outbox — emails stored here instead of being delivered.',
+    hiring: 'Manage job positions and applicant pipeline.',
   };
   const unread = adminNotifs.filter(n => !n.read).length;
 
@@ -730,63 +718,6 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* ── Outbox section ── */}
-          {activeSection === 'outbox' && (
-            <div className="bg-white rounded-2xl border border-[#e8e3da] shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-[#f0ebe2] flex items-center justify-between">
-                <h2 className="font-black text-[#1a2e1a] text-base">Sent Emails</h2>
-                <span className="text-xs font-bold text-[#8a9a8a] bg-[#f2ece0] px-3 py-1 rounded-full">
-                  {outboxLoading ? '…' : outboxEmails.length} total
-                </span>
-              </div>
-              {outboxLoading ? (
-                <div className="py-12 text-center text-[#8a9a8a] font-bold text-sm">Loading…</div>
-              ) : outboxEmails.length === 0 ? (
-                <div className="py-12 text-center text-[#8a9a8a] font-bold text-sm">No simulated emails yet.</div>
-              ) : (
-                <div className="divide-y divide-[#f0ebe2]">
-                  {outboxEmails.map(email => (
-                    <div key={email.id} className="px-6 py-4 flex items-start gap-4 hover:bg-[#faf8f4] transition-colors">
-                      <div className="w-8 h-8 rounded-full bg-[#e8f0eb] flex items-center justify-center shrink-0 mt-0.5">
-                        <svg className="w-4 h-4 text-[#1a3a2a]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                          <path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4 20-7z"/>
-                        </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="text-sm font-black text-[#1a2e1a] truncate">{email.to}</span>
-                          {email.context && (
-                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-[#f2ece0] text-[#6a7a6a]">
-                              {email.context}
-                            </span>
-                          )}
-                          <span className="text-[11px] text-[#8a9a8a] ml-auto shrink-0">
-                            {new Date(email.sent_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        <p className="text-xs font-semibold text-[#4a6a5a] truncate mb-1">{email.subject || '(no subject)'}</p>
-                        <p className="text-xs text-[#8a9a8a] line-clamp-2">{email.body}</p>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          const supabase = getSupabase();
-                          const { data } = await supabase
-                            .from('simulated_emails')
-                            .select('html, subject')
-                            .eq('id', email.id)
-                            .single();
-                          if (data) setOutboxPreview({ html: data.html, subject: data.subject });
-                        }}
-                        className="shrink-0 text-xs font-bold text-[#1a3a2a] hover:underline"
-                      >
-                        Preview
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Stats cards — only on overview */}
           {activeSection === 'overview' && (
@@ -806,8 +737,11 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
-          {/* Table — hidden on outbox */}
-          {activeSection !== 'outbox' && (<div className="bg-white rounded-2xl border border-[#e8e3da] shadow-sm overflow-hidden">
+          {/* HR Pipeline — applicants section */}
+          {activeSection === 'applicants' && <HRPipeline />}
+
+          {/* Table — hidden on applicants (which uses HRPipeline above) */}
+          {activeSection !== 'applicants' && (<div className="bg-white rounded-2xl border border-[#e8e3da] shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-[#f0ebe2] flex items-center justify-between">
               <h2 className="font-black text-[#1a2e1a] text-base">
                 {activeSection === 'overview' ? 'Recent Submissions' : sectionTitle[activeSection]}
@@ -853,16 +787,13 @@ export default function AdminDashboardPage() {
                     <tr className="border-b border-[#f0ebe2]">
                       <th className="px-4 py-3 w-10" />
                       <th className="text-left px-6 py-3 text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest">
-                        {activeSection === 'applicants' ? 'Name' : 'Inquirer'}
+                        Inquirer
                       </th>
                       <th className="text-left px-4 py-3 text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest">
-                        {activeSection === 'applicants' ? 'Position' : 'Type'}
+                        Type
                       </th>
                       {activeSection === 'contacts' && (
                         <th className="text-left px-4 py-3 text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest">Message</th>
-                      )}
-                      {activeSection === 'applicants' && (
-                        <th className="text-left px-4 py-3 text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest">Applicant Details</th>
                       )}
                       {activeSection === 'projects' && (
                         <>
@@ -882,11 +813,11 @@ export default function AdminDashboardPage() {
                       const color = avatarColor(name);
                       const date = new Date(inquiry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                       const status = (inquiry.status || 'new') as Status;
+                      const isHrApplicant = inquiry.source === 'hr_applicants';
                       const isMessageExpanded = expandedMessageIds.includes(inquiry.id);
 
                       const typeCell =
                         activeSection === 'overview' ? <ContextBadge context={inquiry.context} /> :
-                        activeSection === 'applicants' ? <span className="text-sm text-[#355846] font-semibold">{formatPositionLabel(inquiry.position)}</span> :
                         activeSection === 'contacts' ? <span className="text-sm text-[#4a6a5a] font-medium capitalize">{inquiry.position || '—'}</span> :
                         <span className="text-sm text-[#4a6a5a] font-semibold">{inquiry.service || '—'}</span>;
 
@@ -897,12 +828,14 @@ export default function AdminDashboardPage() {
                               type="checkbox"
                               checked={selectedInquiryIds.includes(inquiry.id)}
                               onChange={e => {
+                                if (isHrApplicant) return;
                                 setSelectedInquiryIds(current =>
                                   e.target.checked
                                     ? [...current, inquiry.id]
                                     : current.filter(id => id !== inquiry.id),
                                 );
                               }}
+                              disabled={isHrApplicant}
                               className="h-4 w-4 rounded border-[#d7cdbd] text-[#1a3a2a] focus:ring-[#1a3a2a]"
                               aria-label={`Select ${name}`}
                             />
@@ -923,21 +856,6 @@ export default function AdminDashboardPage() {
                           {/* Type */}
                           <td className="px-4 py-4">{typeCell}</td>
 
-                          {activeSection === 'applicants' && (
-                            <td className="px-4 py-4">
-                              <button
-                                type="button"
-                                onClick={() => setDetailsTarget(inquiry)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#d9cfbf] bg-white text-[#1a3a2a] text-[11px] font-bold hover:bg-[#f8f3ea] transition-colors whitespace-nowrap"
-                              >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                  <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0Z" />
-                                  <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z" />
-                                </svg>
-                                View details
-                              </button>
-                            </td>
-                          )}
 
                           {/* Contacts-only column */}
                           {activeSection === 'contacts' && (
@@ -1005,30 +923,46 @@ export default function AdminDashboardPage() {
 
                           {/* Status */}
                           <td className="px-4 py-4">
-                            <select
-                              value={status}
-                              onChange={e => handleStatusChange(inquiry.id, e.target.value as Status)}
-                              disabled={updatingId === inquiry.id}
-                              className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide border cursor-pointer focus:outline-none transition-colors disabled:cursor-wait ${
-                                status === 'new'
-                                  ? 'bg-[#fff4d8] text-[#a86d00] border-[#f2d48d]'
-                                  : status === 'contacted'
-                                  ? 'bg-[#e8f3eb] text-[#1d6a46] border-[#b9d8c3]'
-                                  : 'bg-[#1a3a2a] text-white border-[#1a3a2a]'
-                              }`}
-                            >
-                              {STATUS_OPTIONS.map(s => (
-                                <option key={s} value={s} className="bg-white text-[#1a2e1a] normal-case font-semibold">
-                                  {s.charAt(0).toUpperCase() + s.slice(1)}
-                                </option>
-                              ))}
-                            </select>
+                            {isHrApplicant ? (
+                              <span className="inline-flex rounded-full border border-[#d9cfbf] bg-[#f8f3ea] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#355846]">
+                                {inquiry.pipeline_status || 'New'}
+                              </span>
+                            ) : (
+                              <select
+                                value={status}
+                                onChange={e => handleStatusChange(inquiry.id, e.target.value as Status)}
+                                disabled={updatingId === inquiry.id}
+                                className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide border cursor-pointer focus:outline-none transition-colors disabled:cursor-wait ${
+                                  status === 'new'
+                                    ? 'bg-[#fff4d8] text-[#a86d00] border-[#f2d48d]'
+                                    : status === 'contacted'
+                                    ? 'bg-[#e8f3eb] text-[#1d6a46] border-[#b9d8c3]'
+                                    : 'bg-[#1a3a2a] text-white border-[#1a3a2a]'
+                                }`}
+                              >
+                                {STATUS_OPTIONS.map(s => (
+                                  <option key={s} value={s} className="bg-white text-[#1a2e1a] normal-case font-semibold">
+                                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
                           </td>
 
                           {/* Action */}
                           <td className="px-4 py-4">
                             <div className="flex flex-wrap items-center gap-2">
-                              {status !== 'contacted' && status !== 'closed' && (
+                              {isHrApplicant ? (
+                                <button
+                                  onClick={() => navigate('/admin?section=applicants')}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#d9cfbf] bg-white text-[#1a3a2a] text-[11px] font-bold hover:bg-[#f8f3ea] transition-colors whitespace-nowrap"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                    <path d="M9 5l7 7-7 7"/>
+                                  </svg>
+                                  Open pipeline
+                                </button>
+                              ) : status !== 'contacted' && status !== 'closed' && (
                                 <button
                                   onClick={() => { setRespondTarget(inquiry); setEmailBody(getEmailTemplate(inquiry)); }}
                                   className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a3a2a] text-white text-[11px] font-bold rounded-lg hover:bg-[#2a5a3a] transition-colors whitespace-nowrap"
@@ -1303,35 +1237,6 @@ export default function AdminDashboardPage() {
         </div>
       )}
       {confirmModal}
-
-      {/* ── Outbox Preview Modal ── */}
-      {outboxPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3">
-          <div className="w-full max-w-2xl rounded-[28px] border border-white/65 bg-[#f7f2e8]/35 p-1.5 shadow-[0_28px_80px_rgba(19,41,30,0.24)] backdrop-blur-md">
-            <div className="overflow-hidden rounded-[24px] bg-white shadow-[0_10px_30px_rgba(19,41,30,0.08)]">
-              <div className="flex items-center justify-between border-b border-[#ece3d4] bg-[linear-gradient(135deg,rgba(247,242,232,0.92),rgba(255,255,255,0.98))] px-6 py-4">
-                <div>
-                  <span className="inline-flex items-center rounded-full border border-[#e4d7c2] bg-[#fff9ef] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#8a7d63]">
-                    Email Preview
-                  </span>
-                  <h3 className="mt-2 text-[1rem] font-black text-[#193728]">{outboxPreview.subject}</h3>
-                </div>
-                <button onClick={() => setOutboxPreview(null)} className="w-8 h-8 rounded-full bg-[#f2ece0] flex items-center justify-center text-[#1a3a2a] hover:bg-[#e8e0d0] transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                </button>
-              </div>
-              <div className="overflow-y-auto max-h-[70vh]">
-                <iframe
-                  srcDoc={outboxPreview.html}
-                  className="w-full border-0"
-                  style={{ height: '600px' }}
-                  title="Email preview"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

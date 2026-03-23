@@ -8,7 +8,6 @@ import {
   createNewsPost,
   getAdminNewsPost,
   NewsPostStatus,
-  notifyAllUsersAboutPost,
   updateNewsPost,
   uploadNewsCover,
 } from '../lib/news';
@@ -109,28 +108,16 @@ export default function AdminPostEditorPage() {
         ? await updateNewsPost(id, payload, previousStatus)
         : await createNewsPost(payload);
 
-      let notificationWarning = false;
-      if (targetStatus === 'published' && previousStatus !== 'published') {
-        try {
-          await notifyAllUsersAboutPost(post.id, post.title);
-        } catch (notificationError) {
-          notificationWarning = true;
-          console.warn('[AdminPostEditorPage] notification dispatch failed', notificationError);
-        }
-      }
-
       pushToast({
-        type: notificationWarning ? 'error' : 'success',
-        message: notificationWarning
-          ? 'Post saved, but notifications failed to send.'
-          : targetStatus === 'published'
-            ? 'Post published.'
-            : 'Draft saved.',
+        type: 'success',
+        message: targetStatus === 'published'
+          ? 'Post published.'
+          : 'Draft saved.',
       });
       navigate('/admin/posts', { replace: true });
     } catch (error) {
       console.error('[AdminPostEditorPage] save error', error);
-      pushToast({ type: 'error', message: 'Failed to save post.' });
+      pushToast({ type: 'error', message: error instanceof Error ? error.message : 'Failed to save post.' });
     } finally {
       setSaving(false);
     }

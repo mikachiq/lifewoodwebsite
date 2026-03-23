@@ -195,10 +195,14 @@ body, input, textarea, select, button {
 .instagram-post-footer {
   flex-shrink: 0;
   border-top: 1px solid #efefef;
-  padding: 12px 32px 20px 24px;
+  padding: 12px 32px 20px 24px !important;
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.news-content-compact p:last-child {
+  margin-bottom: 0;
 }
 
 .instagram-reaction-bar {

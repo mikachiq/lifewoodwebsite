@@ -14,7 +14,6 @@ import {
   reactToPost,
   REACTION_OPTIONS,
   removeReaction,
-  sendNotification,
   updateComment,
 } from '../lib/news';
 
@@ -69,7 +68,10 @@ function timeAgo(value: string) {
 }
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const d = new Date(value);
+  const date = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  return `${date} ${time}`;
 }
 
 function Avatar({ name, src, size = 8 }: { name: string; src: string | null; size?: number }) {
@@ -86,7 +88,7 @@ function PostMediaGallery({ title, mediaUrls }: { title: string; mediaUrls: stri
   if (!activeMediaUrl) return null;
   return (
     <>
-      <img src={activeMediaUrl} alt={title} className="news-post-media-image" />
+      <img key={currentMediaIndex} src={activeMediaUrl} alt={title} className="news-post-media-image" />
       {hasGallery ? (
         <>
           <button type="button" onClick={() => setCurrentMediaIndex(index => (index - 1 + mediaUrls.length) % mediaUrls.length)} className="absolute left-5 top-5 z-10 px-4 py-2 rounded-full border border-[#254737] bg-[#163126] text-white text-sm font-black shadow-lg hover:bg-[#214535] transition-colors">Prev</button>
@@ -203,6 +205,8 @@ export default function NewsPostExperience({ postId, embedded = false }: { postI
     void load();
   }, [load]);
 
+  const mediaUrls = React.useMemo(() => extractMediaUrls(post), [post]);
+
   const notifyAdminsIfNeeded = async (message: string) => {
     const admins = await listAdminRecipients();
     await Promise.all(admins.filter(a => a.id !== user?.id).map(a => sendNotification({ userId: a.id, message, link: `/news/${postId}` })));
@@ -265,24 +269,14 @@ export default function NewsPostExperience({ postId, embedded = false }: { postI
       });
       const actorName = displayName || user?.email?.split('@')[0] || 'Someone';
       if (!(isAdmin || post.author_id === user?.id)) notifyAdminsIfNeeded(`${actorName} commented on your post: ${post.title}`).catch(() => {});
-      if (parentComment && parentComment.user_id && parentComment.user_id !== user?.id) {
-        try {
-          await sendNotification({
-            userId: parentComment.user_id,
-            message: `${actorName} replied to your comment on ${post.title}`,
-            link: `/news/${postId}`,
-          });
-        } catch (error) {
-          console.error('[NewsPostExperience] reply notification failed', error);
-        }
-      }
-    } catch {
+    } catch (error) {
       setComments(prev => {
         const removeTemp = (items: NewsComment[]): NewsComment[] => items.filter(item => item.id !== tempId).map(item => ({ ...item, replies: removeTemp(item.replies) }));
         return removeTemp(prev);
       });
       if (!parentCommentId) setCommentBody(body);
-      pushToast({ type: 'error', message: 'Failed to post comment.' });
+      console.error('[NewsPostExperience] comment submit error', error);
+      pushToast({ type: 'error', message: error instanceof Error ? error.message : 'Failed to post comment.' });
     } finally {
       setSavingComment(false);
     }
@@ -341,7 +335,6 @@ export default function NewsPostExperience({ postId, embedded = false }: { postI
   if (!post) return <div className="py-12 text-center text-green-2 dark:text-green-4 font-bold">Post not found.</div>;
 
   const authorName = post.author?.username || 'Lifewood Team';
-  const mediaUrls = extractMediaUrls(post);
 
   const shellClass = embedded
     ? 'instagram-post-modal'
@@ -357,22 +350,14 @@ export default function NewsPostExperience({ postId, embedded = false }: { postI
                 </div>
 
             <div className={`instagram-post-panel news-post-panel ${embedded ? 'news-post-panel-embedded' : ''}`}>
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-[#dbdbdb] shrink-0">
-                <Avatar name={authorName} src={post.author?.avatar_src || null} size={9} />
-                <div className="flex-1 min-w-0">
-                  <p className="font-black text-[13px] text-[#163126] truncate">{authorName}</p>
-                  <p className="text-[11px] text-[#8a9a8a]">{formatDate(post.published_at || post.created_at)}</p>
-                </div>
-              </div>
-
-              <div className="px-4 py-3 border-b border-[#efefef] shrink-0">
+              <div className="px-4 py-3 border-b border-[#efefef] max-h-[45%] overflow-y-auto">
                 <div className="flex gap-2.5">
                   <Avatar name={authorName} src={post.author?.avatar_src || null} size={8} />
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-black text-[#163126]">{authorName}</p>
-                    <p className="mt-0.5 text-[13px] font-semibold leading-relaxed text-[#2f473a]">{post.title}</p>
+                    <p className="text-[11px] text-[#8a9a8a]">{formatDate(post.published_at || post.created_at)}</p>
+                    <p className="mt-1.5 text-[13px] font-semibold leading-relaxed text-[#2f473a]">{post.title}</p>
                     {post.body ? <div className="mt-1.5 text-[12px] text-[#567263] leading-relaxed news-content-compact" dangerouslySetInnerHTML={{ __html: post.body }} /> : null}
-                    <p className="text-[11px] text-[#8a9a8a] mt-1">{timeAgo(post.published_at || post.created_at)}</p>
                   </div>
                 </div>
               </div>
@@ -381,7 +366,7 @@ export default function NewsPostExperience({ postId, embedded = false }: { postI
                 {comments.length === 0 ? <p className="text-[13px] text-[#8a9a8a] text-center py-6">No comments yet. Be the first!</p> : comments.map(comment => <CommentItem key={comment.id} comment={comment} currentUserId={user?.id || null} canModerate={isAdmin} onReply={(target, body) => handleCommentSubmit(body, target.id)} onEdit={handleEditComment} onDelete={handleDeleteComment} />)}
               </div>
 
-              <div className="instagram-post-footer px-4 py-3 border-t border-[#dbdbdb] shrink-0">
+              <div className="instagram-post-footer border-t border-[#dbdbdb] shrink-0">
                 <div className="instagram-reaction-bar flex items-center gap-1 flex-wrap">
                   {REACTION_OPTIONS.map(option => {
                     const isActive = post.current_user_reaction === option.key;

@@ -4,6 +4,10 @@ import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
 const PROFILE_REFRESH_EVENT = 'lifewood:profile-refresh';
 
+// Module-level cache so AdminProtectedRoute doesn't flash blank on every route change
+let _cachedProfile: Profile | null = null;
+let _cachedAvatarSrc: string | null = null;
+
 export type Profile = {
   id: string;
   username: string | null;
@@ -28,8 +32,8 @@ function emailPrefix(email: string | null | undefined) {
 export function useProfile(): UseProfileResult {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(_cachedProfile);
+  const [avatarSrc, setAvatarSrc] = useState<string | null>(_cachedAvatarSrc);
   const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
@@ -48,6 +52,8 @@ export function useProfile(): UseProfileResult {
       setLoading(false);
       setProfile(null);
       setAvatarSrc(null);
+      _cachedProfile = null;
+      _cachedAvatarSrc = null;
       return;
     }
 
@@ -73,6 +79,7 @@ export function useProfile(): UseProfileResult {
         if (cancelled) return;
         if (error) throw error;
 
+        _cachedProfile = data;
         setProfile(data);
 
         if (data.avatar_url) {
@@ -80,8 +87,12 @@ export function useProfile(): UseProfileResult {
             .from('avatars')
             .createSignedUrl(data.avatar_url, 60 * 60);
           if (signedError) throw signedError;
-          if (!cancelled) setAvatarSrc(signed.signedUrl);
+          if (!cancelled) {
+            _cachedAvatarSrc = signed.signedUrl;
+            setAvatarSrc(signed.signedUrl);
+          }
         } else {
+          _cachedAvatarSrc = null;
           setAvatarSrc(null);
         }
       } catch {

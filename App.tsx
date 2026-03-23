@@ -27,6 +27,7 @@ import AdminProtectedRoute from './components/AdminProtectedRoute';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminPostsPage from './pages/AdminPostsPage';
 import AdminPostEditorPage from './pages/AdminPostEditorPage';
+import AdminHiringPage from './pages/AdminHiringPage';
 import NewsFeedPage from './pages/NewsFeedPage';
 import NewsPostPage from './pages/NewsPostPage';
 
@@ -231,6 +232,14 @@ const App: React.FC = () => {
             element={
               <AdminProtectedRoute>
                 <AdminPostEditorPage />
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/hiring"
+            element={
+              <AdminProtectedRoute>
+                <AdminHiringPage />
               </AdminProtectedRoute>
             }
           />

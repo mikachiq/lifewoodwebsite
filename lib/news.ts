@@ -417,7 +417,35 @@ export async function createNewsPost(input: UpsertNewsPostInput) {
     .single();
 
   if (error) throw error;
-  return getAdminNewsPost(data.id);
+  try {
+    return await getAdminNewsPost(data.id);
+  } catch {
+    const { data: inserted, error: insertedError } = await supabase
+      .from('news_posts')
+      .select(`
+        id,
+        title,
+        body,
+        cover_image_path,
+        gallery_image_paths,
+        author_id,
+        status,
+        published_at,
+        created_at,
+        updated_at,
+        author:profiles!news_posts_author_id_fkey (
+          id,
+          username,
+          avatar_url
+        )
+      `)
+      .eq('id', data.id)
+      .single();
+
+    if (insertedError) throw insertedError;
+    const [post] = await hydratePosts([inserted as PostRow]);
+    return post;
+  }
 }
 
 export async function updateNewsPost(id: string, input: UpsertNewsPostInput, previousStatus?: NewsPostStatus) {
@@ -440,7 +468,35 @@ export async function updateNewsPost(id: string, input: UpsertNewsPostInput, pre
     .eq('id', id);
 
   if (error) throw error;
-  return getAdminNewsPost(id);
+  try {
+    return await getAdminNewsPost(id);
+  } catch {
+    const { data: updated, error: updatedError } = await supabase
+      .from('news_posts')
+      .select(`
+        id,
+        title,
+        body,
+        cover_image_path,
+        gallery_image_paths,
+        author_id,
+        status,
+        published_at,
+        created_at,
+        updated_at,
+        author:profiles!news_posts_author_id_fkey (
+          id,
+          username,
+          avatar_url
+        )
+      `)
+      .eq('id', id)
+      .single();
+
+    if (updatedError) throw updatedError;
+    const [post] = await hydratePosts([updated as PostRow]);
+    return post;
+  }
 }
 
 export async function deleteNewsPost(id: string) {
@@ -641,7 +697,7 @@ export async function addComment(postId: string, body: string, parentCommentId?:
     .select('id')
     .single();
 
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return data.id as string;
 }
 

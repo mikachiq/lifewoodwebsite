@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { TranslationSet } from '../types';
 import { getSupabase } from '../lib/supabaseClient';
+import { fetchPublicHRPositions, HRPosition } from '../lib/hrPositions';
 
 interface EmploymentModalProps {
   onClose: () => void;
@@ -9,9 +10,8 @@ interface EmploymentModalProps {
   presetPosition?: string;
 }
 
-type PositionRule = { mode: 'fixed' | 'remote' | 'flexible'; value?: string };
-
 const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations, onExplorePortal, presetPosition }) => {
+  const [dynamicPositions, setDynamicPositions] = useState<HRPosition[]>([]);
   const officeLocations = useMemo(() => [
     { value: 'petaling-jaya', label: translations.officeCityPetalingJaya },
     { value: 'manila', label: translations.officeCityManila },
@@ -24,13 +24,13 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
     { value: 'taipei', label: translations.officeCityTaipei },
   ], [translations]);
 
-  const positionLocationRules: Record<string, PositionRule> = {
+  const legacyPositionLocationRules = {
     'senior-ai-data-architect': { mode: 'remote', value: 'remote-global' },
     'multilingual-nlp-specialist': { mode: 'fixed', value: 'petaling-jaya' },
     'global-operations-manager': { mode: 'fixed', value: 'manila' },
     'ai-training-associate': { mode: 'flexible' },
     'ai-data-intern': { mode: 'flexible' },
-  };
+  } as const;
 
   const getRemoteLabel = (positionValue: string) => {
     if (positionValue === 'ai-training-associate') return translations.careerJob5Loc || 'Hybrid / Global';
@@ -38,7 +38,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
   };
 
   const getInitialLocation = (positionValue: string) => {
-    const rule = positionLocationRules[positionValue];
+    const rule = legacyPositionLocationRules[positionValue];
     if (!rule || rule.mode === 'flexible') return '';
     return rule.value || '';
   };
@@ -72,13 +72,31 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState('');
 
-  const positions = [
+  useEffect(() => {
+    let isMounted = true;
+    fetchPublicHRPositions()
+      .then(data => {
+        if (isMounted) setDynamicPositions(data.filter(position => position.is_active));
+      })
+      .catch(error => {
+        console.error('[EmploymentModal] positions load error', error);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const fallbackPositions = [
     { value: 'senior-ai-data-architect', label: translations.careerJob1Title },
     { value: 'multilingual-nlp-specialist', label: translations.careerJob2Title },
     { value: 'global-operations-manager', label: translations.careerJob4Title },
     { value: 'ai-training-associate', label: translations.careerJob5Title },
     { value: 'ai-data-intern', label: translations.careerJob3Title },
   ];
+
+  const positions = dynamicPositions.length > 0
+    ? dynamicPositions.map(position => ({ value: position.id, label: position.title }))
+    : fallbackPositions;
 
   const experienceLevels = [
     { value: 'entry', label: translations.formExpEntry },
@@ -87,22 +105,45 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
   ];
 
   const effectivePosition = presetPosition || formData.position;
-  const isInternPresetModal = presetPosition === 'ai-data-intern';
-  const selectedPositionRule = effectivePosition ? positionLocationRules[effectivePosition] : undefined;
-  const isFixedRoleModal = Boolean(presetPosition && selectedPositionRule && selectedPositionRule.mode !== 'flexible');
-  const showPositionField = !presetPosition && !isFixedRoleModal && !isInternPresetModal;
+  const selectedPositionMeta = dynamicPositions.find(position => position.id === effectivePosition) || null;
+  const selectedPositionRule = effectivePosition ? legacyPositionLocationRules[effectivePosition as keyof typeof legacyPositionLocationRules] : undefined;
+  const dynamicPositionAllowsOfficeChoice = Boolean(
+    selectedPositionMeta && /remote|global|hybrid/i.test(
+      `${selectedPositionMeta.work_mode || ''} ${selectedPositionMeta.location || ''}`,
+    ),
+  );
+  const isInternPresetModal = selectedPositionMeta
+    ? selectedPositionMeta.application_form_type === 'intern'
+    : effectivePosition === 'ai-data-intern';
+  const isFixedRoleModal = Boolean(!selectedPositionMeta && presetPosition && selectedPositionRule && selectedPositionRule.mode !== 'flexible');
+  const showPositionField = !presetPosition && !isFixedRoleModal;
   const showWorkLocationField = !isFixedRoleModal && !isInternPresetModal;
   const showExperienceField = !isInternPresetModal;
 
-  const isWorkLocationDisabled = !effectivePosition || selectedPositionRule?.mode !== 'flexible';
-  const workLocationOptions =
-    selectedPositionRule?.mode === 'flexible'
+  const workLocationOptions = selectedPositionMeta
+    ? dynamicPositionAllowsOfficeChoice
+      ? officeLocations
+      : [{ value: selectedPositionMeta.location || 'preferred-location', label: selectedPositionMeta.location || translations.formWorkLocationPlaceholder }]
+    : selectedPositionRule?.mode === 'flexible'
       ? officeLocations
       : selectedPositionRule?.mode === 'fixed'
         ? officeLocations.filter(location => location.value === selectedPositionRule.value)
         : selectedPositionRule?.mode === 'remote' && effectivePosition
           ? [{ value: 'remote-global', label: getRemoteLabel(effectivePosition) }]
           : [];
+  const isWorkLocationDisabled =
+    selectedPositionMeta
+      ? !dynamicPositionAllowsOfficeChoice && Boolean(selectedPositionMeta.location)
+      : (!effectivePosition || selectedPositionRule?.mode !== 'flexible');
+
+  useEffect(() => {
+    if (!selectedPositionMeta?.location || dynamicPositionAllowsOfficeChoice) return;
+    setFormData(prev => (
+      prev.workLocation === selectedPositionMeta.location
+        ? prev
+        : { ...prev, workLocation: selectedPositionMeta.location || '' }
+    ));
+  }, [dynamicPositionAllowsOfficeChoice, selectedPositionMeta]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -113,7 +154,19 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
           return { ...prev, position: '', workLocation: '' };
         }
 
-        const rule = positionLocationRules[value];
+        const selectedDynamicPosition = dynamicPositions.find(position => position.id === value);
+        if (selectedDynamicPosition) {
+          const allowsOfficeChoice = /remote|global|hybrid/i.test(
+            `${selectedDynamicPosition.work_mode || ''} ${selectedDynamicPosition.location || ''}`,
+          );
+          return {
+            ...prev,
+            position: value,
+            workLocation: allowsOfficeChoice ? '' : (selectedDynamicPosition.location || ''),
+          };
+        }
+
+        const rule = legacyPositionLocationRules[value as keyof typeof legacyPositionLocationRules];
         if (!rule) {
           return { ...prev, position: value, workLocation: '' };
         }
@@ -152,57 +205,62 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
     setSubmitError(null);
     try {
       const supabase = getSupabase();
-      let attachment_url: string | null = null;
-      let attachment_name: string | null = null;
+      let resumeUrl: string | null = null;
 
+      // Upload resume through the backend so public applicants do not depend
+      // on browser-side Supabase storage permissions.
       if (attachmentFile) {
-        const safeName = attachmentFile.name.replace(/\s+/g, '-');
-        const filePath = `${Date.now()}-${safeName}`;
-        const { error: uploadError } = await supabase.storage
-          .from('application-attachments')
-          .upload(filePath, attachmentFile, {
-            upsert: false,
-            contentType: attachmentFile.type || 'application/octet-stream',
+        try {
+          const uploadForm = new FormData();
+          uploadForm.append('file', attachmentFile);
+
+          const uploadRes = await fetch('/api/public/uploads', {
+            method: 'POST',
+            body: uploadForm,
           });
+          const uploadData = await uploadRes.json().catch(() => ({}));
 
-        if (uploadError) throw uploadError;
+          if (!uploadRes.ok) {
+            throw new Error(uploadData.error || 'Resume upload failed.');
+          }
 
-        const { data: urlData } = supabase.storage
-          .from('application-attachments')
-          .getPublicUrl(filePath);
-
-        attachment_url = urlData.publicUrl;
-        attachment_name = attachmentFile.name;
+          resumeUrl = typeof uploadData.url === 'string' ? uploadData.url : null;
+          if (!resumeUrl) {
+            throw new Error(uploadData.warning || 'Resume upload is not configured yet.');
+          }
+        } catch (uploadErr) {
+          console.error('[EmploymentModal] Resume upload error:', uploadErr);
+          throw new Error('Resume upload failed. Please try again in a moment.');
+        }
       }
 
-      const { error: insertError } = await supabase.from('inquiries').insert({
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        email: formData.email,
+      const role = effectivePosition || formData.position;
+      const notes = JSON.stringify({
         phone: `${formData.phoneCountryCode} ${formData.phoneNumber}`.trim(),
-        country: formData.country,
-        city: formData.city,
-        position: effectivePosition || formData.position,
         experience: formData.experience,
-        work_location: formData.workLocation,
+        workLocation: formData.workLocation,
         availability: formData.availability,
         languages: formData.languages.join(', '),
         skills: formData.skills,
-        cover_letter: formData.coverLetter,
         linkedin: formData.linkedin,
         portfolio: formData.portfolio,
-        additional_info: formData.additionalInfo,
+        additionalInfo: formData.additionalInfo,
         university: formData.university,
-        course_program: formData.courseProgram,
-        internship_hours: formData.internshipHours,
-        attachment_url,
-        attachment_name,
-        message: formData.coverLetter || formData.skills || '',
-        context: 'career',
-        status: 'new',
+        courseProgram: formData.courseProgram,
+        internshipHours: formData.internshipHours,
+        coverLetter: formData.coverLetter,
       });
-      if (insertError) throw insertError;
+
+      const { error: insertError } = await supabase.from('hr_applicants').insert({
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        email: formData.email,
+        role,
+        applied_date: new Date().toISOString(),
+        resume_path: resumeUrl,
+        notes,
+        status: null,
+      });
+      if (insertError) throw new Error(insertError.message);
       setIsSubmitted(true);
       setAttachmentFile(null);
       setFileName('');
@@ -370,6 +428,31 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                         </div>
                       </div>
 
+                      {showPositionField && (
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-85">{translations.formPositionLabel} <span className="text-saffron">*</span></label>
+                          <div className="relative">
+                            <select
+                              required
+                              name="position"
+                              value={formData.position}
+                              onChange={handleInputChange}
+                              className={`w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors font-semibold text-sm appearance-none cursor-pointer dark:[color-scheme:dark] ${formData.position ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
+                            >
+                              <option value="" disabled>{translations.formPositionPlaceholder}</option>
+                              {positions.map(p => (
+                                <option key={p.value} value={p.value} className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{p.label}</option>
+                              ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-dark-serpent dark:text-white">
+                              <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
+                                <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path>
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                         <div className="space-y-1">
                           <label className="text-[11px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-85">{translations.formCourseProgramLabel || 'Course / Program'} <span className="text-saffron">*</span></label>
@@ -415,10 +498,11 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                               name="workLocation"
                               value={formData.workLocation}
                               onChange={handleInputChange}
-                              className={`w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors font-semibold text-sm appearance-none cursor-pointer dark:[color-scheme:dark] ${formData.workLocation ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
+                              disabled={isWorkLocationDisabled}
+                              className={`w-full px-4 py-3 border-2 border-paper dark:border-green-800 bg-white/80 dark:bg-[#0a1612] rounded-2xl focus:border-castleton-green dark:focus:border-saffron focus:outline-none transition-colors font-semibold text-sm appearance-none dark:[color-scheme:dark] ${isWorkLocationDisabled ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'} ${formData.workLocation ? 'text-dark-serpent dark:text-white' : 'text-green-2/50 dark:text-green-4/50'}`}
                             >
                               <option value="" disabled>{translations.formWorkLocationPlaceholder}</option>
-                              {officeLocations.map(location => (
+                              {workLocationOptions.map(location => (
                                 <option key={location.value} value={location.value} className="text-dark-serpent dark:text-white bg-white dark:bg-dark-serpent">{location.label}</option>
                               ))}
                             </select>
@@ -615,5 +699,6 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
 };
 
 export default EmploymentModal;
+
 
 

@@ -119,6 +119,83 @@ with check (
   )
 );
 
+create or replace function public.notify_users_new_published_post()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.status = 'published' and (tg_op = 'INSERT' or old.status is distinct from 'published') then
+    insert into public.notifications (user_id, message, link, read)
+    select
+      p.id,
+      'New post: ' || new.title,
+      '/news/' || new.id,
+      false
+    from public.profiles p
+    where p.id <> new.author_id
+    on conflict do nothing;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trigger_notify_users_new_published_post on public.news_posts;
+create trigger trigger_notify_users_new_published_post
+after insert or update on public.news_posts
+for each row execute function public.notify_users_new_published_post();
+
+create or replace function public.notify_comment_reply_recipient()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  parent_owner uuid;
+  post_title text;
+  actor_name text;
+begin
+  if new.parent_comment_id is null then
+    return new;
+  end if;
+
+  select c.user_id into parent_owner
+  from public.news_comments c
+  where c.id = new.parent_comment_id;
+
+  if parent_owner is null or parent_owner = new.user_id then
+    return new;
+  end if;
+
+  select title into post_title
+  from public.news_posts
+  where id = new.post_id;
+
+  select coalesce(nullif(trim(username), ''), 'Someone')
+  into actor_name
+  from public.profiles
+  where id = new.user_id;
+
+  insert into public.notifications (user_id, message, link, read)
+  values (
+    parent_owner,
+    coalesce(actor_name, 'Someone') || ' replied to your comment on ' || coalesce(post_title, 'a post'),
+    '/news/' || new.post_id,
+    false
+  );
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trigger_notify_comment_reply_recipient on public.news_comments;
+create trigger trigger_notify_comment_reply_recipient
+after insert on public.news_comments
+for each row execute function public.notify_comment_reply_recipient();
+
 create table if not exists public.news_posts (
   id uuid primary key default gen_random_uuid(),
   title text not null check (char_length(trim(title)) > 0),

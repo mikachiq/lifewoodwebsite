@@ -71,10 +71,20 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    href: '/admin/hiring',
+    label: 'Hiring',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+        <path d="M4 7h16M7 3v8M17 3v8M5 11h14a2 2 0 012 2v5a3 3 0 01-3 3H6a3 3 0 01-3-3v-5a2 2 0 012-2z" />
+      </svg>
+    ),
+  },
 ] as const;
 
 function isActive(pathname: string, search: string, href: string) {
   if (href.startsWith('/admin/posts')) return pathname.startsWith('/admin/posts');
+  if (href.startsWith('/admin/hiring')) return pathname.startsWith('/admin/hiring');
   if (href === '/admin') return pathname === '/admin' && !search;
   return pathname === '/admin' && search === href.replace('/admin', '');
 }

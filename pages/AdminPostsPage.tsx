@@ -7,7 +7,6 @@ import {
   deleteNewsPost,
   listAdminNewsPosts,
   NewsPostRecord,
-  notifyAllUsersAboutPost,
   setNewsPostStatus,
 } from '../lib/news';
 
@@ -82,13 +81,27 @@ export default function AdminPostsPage() {
     try {
       setBusyId(post.id);
       await setNewsPostStatus(post.id, nextStatus, post.status);
-      if (nextStatus === 'published' && post.status !== 'published') {
-        await notifyAllUsersAboutPost(post.id, post.title);
-      }
-      await loadPosts();
+      setPosts(current => {
+        const next = current.map(item => (
+          item.id === post.id
+            ? {
+                ...item,
+                status: nextStatus,
+                published_at: nextStatus === 'published' ? new Date().toISOString() : null,
+              }
+            : item
+        ));
+        cachedAdminPosts = next;
+        return next;
+      });
+      void loadPosts();
       pushToast({ type: 'success', message: nextStatus === 'published' ? 'Post published.' : 'Post moved to draft.' });
-    } catch {
-      pushToast({ type: 'error', message: 'Failed to update post status.' });
+    } catch (error) {
+      console.error('[AdminPostsPage] publish toggle error', error);
+      const msg = (error instanceof Error || (error && typeof (error as { message?: unknown }).message === 'string'))
+        ? (error as { message: string }).message
+        : 'Failed to update post status.';
+      pushToast({ type: 'error', message: msg });
     } finally {
       setBusyId(null);
     }
@@ -98,10 +111,26 @@ export default function AdminPostsPage() {
     try {
       setBusyId(post.id);
       await setNewsPostStatus(post.id, 'archived', post.status);
-      await loadPosts();
+      setPosts(current => {
+        const next = current.map(item => (
+          item.id === post.id
+            ? {
+                ...item,
+                status: 'archived',
+              }
+            : item
+        ));
+        cachedAdminPosts = next;
+        return next;
+      });
+      void loadPosts();
       pushToast({ type: 'success', message: 'Post archived.' });
-    } catch {
-      pushToast({ type: 'error', message: 'Failed to archive post.' });
+    } catch (error) {
+      console.error('[AdminPostsPage] archive error', error);
+      const msg = (error instanceof Error || (error && typeof (error as { message?: unknown }).message === 'string'))
+        ? (error as { message: string }).message
+        : 'Failed to archive post.';
+      pushToast({ type: 'error', message: msg });
     } finally {
       setBusyId(null);
     }

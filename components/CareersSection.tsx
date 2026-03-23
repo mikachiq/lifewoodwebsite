@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TranslationSet } from '../types';
+import { fetchPublicHRPositions, HRPosition } from '../lib/hrPositions';
 
 interface CareersSectionProps {
   translations: TranslationSet;
@@ -9,8 +10,23 @@ interface CareersSectionProps {
 const CareersSection: React.FC<CareersSectionProps> = ({ translations, onJoinTeam }) => {
   const [expandedJob, setExpandedJob] = useState<number | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [dynamicJobs, setDynamicJobs] = useState<HRPosition[]>([]);
   const safeText = (value: string | undefined, fallback = '-') =>
     value && value.trim().length > 0 ? value : fallback;
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchPublicHRPositions()
+      .then(data => {
+        if (isMounted) setDynamicJobs(data.filter(job => job.is_active));
+      })
+      .catch(error => {
+        console.error('[CareersSection] positions load error', error);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const images = [
     '/assets/career-1.jpg',
@@ -22,7 +38,7 @@ const CareersSection: React.FC<CareersSectionProps> = ({ translations, onJoinTea
     setCurrentImageIndex((prev) => (prev + 1) % images.length);
   };
 
-  const jobs = [
+  const fallbackJobs = [
     {
       positionValue: 'senior-ai-data-architect',
       title: translations.careerJob1Title,
@@ -89,6 +105,20 @@ const CareersSection: React.FC<CareersSectionProps> = ({ translations, onJoinTea
       ].filter((q): q is string => Boolean(q && q.trim()))
     }
   ];
+
+  const jobs = dynamicJobs.length > 0
+    ? dynamicJobs.map(job => ({
+        positionValue: job.id,
+        title: job.title,
+        dept: job.department || '',
+        loc: job.location || translations.careerGlobalLocation || 'Global',
+        type: job.employment_type || '',
+        pay: job.compensation || translations.careerCompensation,
+        qualifications: job.qualifications || [],
+        details: job.details || '',
+        workMode: job.work_mode || '',
+      }))
+    : fallbackJobs;
 
   const benefits = [
     { icon: '\u{1F3E0}', title: translations.careerBenefitRemote, desc: translations.careerBenefitRemoteDesc },
@@ -331,7 +361,16 @@ const CareersSection: React.FC<CareersSectionProps> = ({ translations, onJoinTea
                 <div className="flex flex-wrap gap-3 mb-6">
                   <span className="px-3 py-1 bg-paper dark:bg-green-900/30 text-[10px] font-black uppercase tracking-widest text-dark-serpent dark:text-white rounded-md">{safeText(job.dept)}</span>
                   <span className="px-3 py-1 bg-paper dark:bg-green-900/30 text-[10px] font-black uppercase tracking-widest text-dark-serpent dark:text-white rounded-md">{safeText(job.type)}</span>
+                  {'workMode' in job && job.workMode ? (
+                    <span className="px-3 py-1 bg-paper dark:bg-green-900/30 text-[10px] font-black uppercase tracking-widest text-dark-serpent dark:text-white rounded-md">{safeText(job.workMode)}</span>
+                  ) : null}
                 </div>
+
+                {'details' in job && job.details ? (
+                  <p className="mb-6 text-sm font-medium text-dark-serpent/75 dark:text-green-4 leading-relaxed">
+                    {job.details}
+                  </p>
+                ) : null}
 
                 <div className="mb-8">
                   <button
