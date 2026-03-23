@@ -90,3 +90,26 @@ export async function deleteHRPosition(id: string) {
   const { error } = await supabase.from('hr_positions').delete().eq('id', id);
   if (error) throw error;
 }
+
+export async function notifyUsersNewPosition(title: string) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.from('profiles').select('id');
+  if (error) throw error;
+
+  const rows = (data || [])
+    .filter(profile => profile.id)
+    .map(profile => ({
+      user_id: profile.id,
+      message: `New position open: ${title}`,
+      link: '/#job-board',
+      read: false,
+    }));
+
+  if (!rows.length) return;
+
+  for (let i = 0; i < rows.length; i += 100) {
+    const chunk = rows.slice(i, i + 100);
+    const { error: insertError } = await supabase.from('notifications').insert(chunk);
+    if (insertError) console.warn('[notifyUsersNewPosition] notification insert error:', insertError);
+  }
+}

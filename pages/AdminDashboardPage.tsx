@@ -287,6 +287,7 @@ export default function AdminDashboardPage() {
   const [detailsTarget, setDetailsTarget] = useState<Inquiry | null>(null);
   const [projectDetailsTarget, setProjectDetailsTarget] = useState<Inquiry | null>(null);
   const [expandedMessageIds, setExpandedMessageIds] = useState<string[]>([]);
+  const [overviewFilter, setOverviewFilter] = useState<'all' | 'contact' | 'career' | 'project'>('all');
   const [emailBody, setEmailBody] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [adminNotifs, setAdminNotifs] = useState<AdminNotif[]>([]);
@@ -423,6 +424,7 @@ export default function AdminDashboardPage() {
     }
   };
 
+
   const handleExport = () => {
     try {
       setExporting(true);
@@ -436,10 +438,9 @@ export default function AdminDashboardPage() {
   };
 
   const visibleInquiries = activeSection === 'overview'
-    ? inquiries.slice(0, 10)
+    ? (overviewFilter === 'all' ? inquiries : inquiries.filter(inq => inq.context === overviewFilter)).slice(0, 10)
     : inquiries.filter(inq =>
         activeSection === 'contacts' ? inq.context === 'contact'
-        : activeSection === 'applicants' ? inq.context === 'career'
         : inq.context === 'project'
       );
   const sectionTitle: Record<NavSection, string> = {
@@ -472,7 +473,7 @@ export default function AdminDashboardPage() {
         }`}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-[#e0d9ce]">
+        <div className="flex items-center gap-3 px-5 pt-7 pb-4 border-b border-[#e0d9ce]">
           <img src="/assets/logo.png" alt="Lifewood" className="h-8 w-auto object-contain shrink-0" />
           {!sidebarCollapsed && (
             <>
@@ -742,10 +743,26 @@ export default function AdminDashboardPage() {
 
           {/* Table — hidden on applicants (which uses HRPipeline above) */}
           {activeSection !== 'applicants' && (<div className="bg-white rounded-2xl border border-[#e8e3da] shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-[#f0ebe2] flex items-center justify-between">
-              <h2 className="font-black text-[#1a2e1a] text-base">
-                {activeSection === 'overview' ? 'Recent Submissions' : sectionTitle[activeSection]}
-              </h2>
+            <div className="px-6 py-4 border-b border-[#f0ebe2] flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h2 className="font-black text-[#1a2e1a] text-base">
+                  {activeSection === 'overview' ? 'Recent Submissions' : sectionTitle[activeSection]}
+                </h2>
+                {activeSection === 'overview' && (
+                  <div className="flex items-center gap-1">
+                    {(['all', 'contact', 'career', 'project'] as const).map(f => (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => setOverviewFilter(f)}
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide transition-colors ${overviewFilter === f ? 'bg-[#1a3a2a] text-white' : 'bg-[#f2ece0] text-[#6a8a7a] hover:bg-[#e4dcd0]'}`}
+                      >
+                        {f === 'all' ? 'All' : f === 'contact' ? 'Inquiries' : f === 'career' ? 'Applications' : 'Projects'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 {selectedInquiryIds.length > 0 ? (
                   <button
@@ -1195,16 +1212,16 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
 
-              <div className="max-h-[68vh] overflow-y-auto px-6 py-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="max-h-[62vh] overflow-y-auto px-6 py-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {projectDetails(projectDetailsTarget).map(item => (
-                    <div key={item.label} className={`rounded-2xl border border-[#e8e3da] bg-[#fffdfa] p-4 ${String(item.value).length > 120 ? 'md:col-span-2' : ''}`}>
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a9a8a]">{item.label}</p>
-                      <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[#203427]">{item.value}</p>
+                    <div key={item.label} className={`rounded-xl border border-[#e8e3da] bg-[#fffdfa] p-3 ${String(item.value).length > 100 ? 'col-span-2 md:col-span-3' : ''}`}>
+                      <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#8a9a8a]">{item.label}</p>
+                      <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-5 text-[#203427]">{item.value}</p>
                     </div>
                   ))}
                   {projectDetailsTarget.attachment_url && (
-                    <div className="rounded-2xl border border-[#e8e3da] bg-[#fffdfa] p-4 md:col-span-2">
+                    <div className="rounded-xl border border-[#e8e3da] bg-[#fffdfa] p-3 col-span-2 md:col-span-3">
                       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a9a8a]">Attachment</p>
                       <div className="mt-2">
                         <a

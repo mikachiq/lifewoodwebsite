@@ -55,13 +55,12 @@ const WRAPPER = `<!DOCTYPE html>
   .btn { display: inline-block; background: #0f4d3f; color: #ffffff !important; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: 700; font-size: 13px; margin: 4px 0 12px; }
 
   /* Details table */
-  .details { border: 1px solid #cfdccf; border-radius: 5px; overflow: hidden; margin: 14px 0 12px; }
-  .drow { display: flex; border-bottom: 1px solid #d9e3da; }
-  .drow:last-child { border-bottom: none; }
-  .dlabel { flex: 0 0 34%; padding: 11px 14px; font-size: 13px; color: #4d6a5b; }
-  .dvalue { flex: 1; padding: 11px 14px; font-size: 13px; font-weight: 700; color: #203228; text-align: right; }
+  .details { width: 100%; border-collapse: collapse; border: 1px solid #cfdccf; border-radius: 5px; margin: 14px 0 12px; }
+  .dlabel { padding: 11px 14px; font-size: 13px; color: #4d6a5b; width: 38%; border-bottom: 1px solid #d9e3da; }
+  .dvalue { padding: 11px 14px; font-size: 13px; font-weight: 700; color: #203228; text-align: left; border-bottom: 1px solid #d9e3da; }
   .dvalue.green { color: #0f6d58; }
   .dvalue.amber { color: #de940e; }
+  tr:last-child .dlabel, tr:last-child .dvalue { border-bottom: none; }
 
   /* Footer */
   .footer { background: #f4efe6; border-top: 1px solid #d5dfd6; padding: 10px 24px 12px; text-align: center; }
@@ -98,6 +97,7 @@ const WRAPPER = `<!DOCTYPE html>
   </div>
 
 </div></div>
+<div style="display:none;max-height:0px;overflow:hidden;mso-hide:all;">{{UNIQUE_ID}}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
 </body></html>`;
 
 // ---------------------------------------------------------------------------
@@ -133,11 +133,10 @@ function getBodyContent(
 <p class="text">We have reviewed your application and would like to invite you to complete the AI screening assessment as the next step in the process.</p>
 <p class="text">Please complete the assessment at your earliest convenience using the link below. It should take approximately 15–20 minutes.</p>
 <a href="https://lifewoodph-ai-interviewer.vercel.app/" class="btn">Start AI Screening &rarr;</a>
-<div class="details">
-  <div class="drow"><span class="dlabel">Position</span><span class="dvalue">${vars.role}</span></div>
-  <div class="drow"><span class="dlabel">Date Sent</span><span class="dvalue">${today()}</span></div>
-  <div class="drow"><span class="dlabel">Status</span><span class="dvalue green">Assessment Sent</span></div>
-</div>
+<table class="details" cellpadding="0" cellspacing="0">
+  <tr><td class="dlabel">Position</td><td class="dvalue">${vars.role}</td></tr>
+  <tr><td class="dlabel">Date Sent</td><td class="dvalue">${today()}</td></tr>
+</table>
 <p class="text">Please complete this within <strong>2 business days</strong> to keep your application active. We look forward to hearing from you.</p>`;
 
     case 'screening-reject':
@@ -147,11 +146,10 @@ function getBodyContent(
 <p class="text">Thank you for reaching out to Lifewood regarding the <strong>${vars.role}</strong> position and for the time you invested in your application.</p>
 <p class="text">After careful consideration, we regret to inform you that we will not be moving forward with your application at this time.</p>
 <p class="text">${vars.reason}</p>
-<div class="details">
-  <div class="drow"><span class="dlabel">Position</span><span class="dvalue">${vars.role}</span></div>
-  <div class="drow"><span class="dlabel">Date</span><span class="dvalue">${today()}</span></div>
-  <div class="drow"><span class="dlabel">Status</span><span class="dvalue amber">Not Selected</span></div>
-</div>
+<table class="details" cellpadding="0" cellspacing="0">
+  <tr><td class="dlabel">Position</td><td class="dvalue">${vars.role}</td></tr>
+  <tr><td class="dlabel">Date</td><td class="dvalue">${today()}</td></tr>
+</table>
 <p class="text">We appreciate the effort you put into your application and wish you all the best in your future endeavors.</p>`;
 
     case 'screening-follow-up':
@@ -161,37 +159,34 @@ function getBodyContent(
 <p class="text">This is a friendly reminder that you have a pending AI screening assessment for the <strong>${vars.role}</strong> position at Lifewood.</p>
 <p class="text">Please complete the assessment as soon as possible using the link below.</p>
 <a href="https://lifewoodph-ai-interviewer.vercel.app/" class="btn">Complete AI Screening &rarr;</a>
-<div class="details">
-  <div class="drow"><span class="dlabel">Position</span><span class="dvalue">${vars.role}</span></div>
-  <div class="drow"><span class="dlabel">Date</span><span class="dvalue">${today()}</span></div>
-  <div class="drow"><span class="dlabel">Status</span><span class="dvalue amber">Pending Response</span></div>
-</div>
+<table class="details" cellpadding="0" cellspacing="0">
+  <tr><td class="dlabel">Position</td><td class="dvalue">${vars.role}</td></tr>
+  <tr><td class="dlabel">Date</td><td class="dvalue">${today()}</td></tr>
+</table>
 <p class="text">If we do not hear back, your application may be marked as inactive. Please reach out if you have any questions.</p>`;
 
     case 'interview-schedule':
       return `
 <span class="badge">Interview Invitation</span>
 <p class="greeting">Dear ${vars.name},</p>
-<p class="text">Congratulations on progressing to the interview stage for the <strong>${vars.role}</strong> position at Lifewood!</p>
-<p class="text">${vars.body}</p>
-<div class="details">
-  <div class="drow"><span class="dlabel">Position</span><span class="dvalue">${vars.role}</span></div>
-  <div class="drow"><span class="dlabel">Date &amp; Time</span><span class="dvalue">${vars.interviewDate || 'To be confirmed'}</span></div>
-  <div class="drow"><span class="dlabel">Meeting Link</span><span class="dvalue"><a href="${vars.meetLink}" style="color:#046241;font-weight:700;">${vars.meetLink || '—'}</a></span></div>
-  <div class="drow"><span class="dlabel">Status</span><span class="dvalue green">Interview Scheduled</span></div>
-</div>
-<p class="text">Please confirm your attendance by replying to this email. We look forward to speaking with you soon.</p>`;
+${vars.body ? `<p class="text">${vars.body}</p>` : ''}
+<p class="text">Please review the interview details below.</p>
+<table class="details" cellpadding="0" cellspacing="0">
+  <tr><td class="dlabel">Position</td><td class="dvalue">${vars.role}</td></tr>
+  <tr><td class="dlabel">Date &amp; Time</td><td class="dvalue">${vars.interviewDate || 'To be confirmed'}</td></tr>
+  <tr><td class="dlabel">Meeting Link</td><td class="dvalue"><a href="${vars.meetLink}" style="color:#046241;font-weight:700;">${vars.meetLink || '—'}</a></td></tr>
+</table>
+<p class="text">Best regards,<br>The Lifewood HR Team</p>`;
 
     case 'talent-pool':
       return `
 <span class="badge">Talent Pool</span>
 <p class="greeting">Dear ${vars.name},</p>
 <p class="text">${vars.body}</p>
-<div class="details">
-  <div class="drow"><span class="dlabel">Position</span><span class="dvalue">${vars.role}</span></div>
-  <div class="drow"><span class="dlabel">Date</span><span class="dvalue">${today()}</span></div>
-  <div class="drow"><span class="dlabel">Status</span><span class="dvalue amber">Talent Pool</span></div>
-</div>
+<table class="details" cellpadding="0" cellspacing="0">
+  <tr><td class="dlabel">Position</td><td class="dvalue">${vars.role}</td></tr>
+  <tr><td class="dlabel">Date</td><td class="dvalue">${today()}</td></tr>
+</table>
 <p class="text">We appreciate your interest in Lifewood and will be in touch when a suitable opportunity arises.</p>`;
 
     case 'inactive':
@@ -200,11 +195,10 @@ function getBodyContent(
 <p class="greeting">Dear ${vars.name},</p>
 <p class="text">We noticed we haven't heard back from you regarding your application for the <strong>${vars.role}</strong> position at Lifewood.</p>
 <p class="text">Your application has been marked as <strong>inactive</strong> due to no response within the allotted timeframe.</p>
-<div class="details">
-  <div class="drow"><span class="dlabel">Position</span><span class="dvalue">${vars.role}</span></div>
-  <div class="drow"><span class="dlabel">Date</span><span class="dvalue">${today()}</span></div>
-  <div class="drow"><span class="dlabel">Status</span><span class="dvalue amber">Inactive</span></div>
-</div>
+<table class="details" cellpadding="0" cellspacing="0">
+  <tr><td class="dlabel">Position</td><td class="dvalue">${vars.role}</td></tr>
+  <tr><td class="dlabel">Date</td><td class="dvalue">${today()}</td></tr>
+</table>
 <p class="text">If you remain interested in opportunities at Lifewood, we welcome you to reapply in the future. Thank you for your interest, and we wish you the best.</p>`;
 
     case 'hired':
@@ -214,11 +208,10 @@ function getBodyContent(
 <p class="text">We are absolutely thrilled to extend this offer to you! After a thorough evaluation, you have been selected for the <strong>${vars.role}</strong> position at Lifewood.</p>
 <p class="text">We have discussed the details of your role and are confident that you will be a tremendous addition to our team.</p>
 <p class="text">Our HR team will be reaching out shortly with your onboarding details and next steps. We look forward to speaking with you soon.</p>
-<div class="details">
-  <div class="drow"><span class="dlabel">Position</span><span class="dvalue">${vars.role}</span></div>
-  <div class="drow"><span class="dlabel">Date</span><span class="dvalue">${today()}</span></div>
-  <div class="drow"><span class="dlabel">Status</span><span class="dvalue green">Hired</span></div>
-</div>
+<table class="details" cellpadding="0" cellspacing="0">
+  <tr><td class="dlabel">Position</td><td class="dvalue">${vars.role}</td></tr>
+  <tr><td class="dlabel">Date</td><td class="dvalue">${today()}</td></tr>
+</table>
 <p class="text">Welcome to the Lifewood family! We are excited to have you on board and look forward to achieving great things together.</p>`;
 
     default:
@@ -259,7 +252,9 @@ function buildEmailHtml(
   }
 ): string {
   const bodyContent = getBodyContent(templateKey, vars);
-  return WRAPPER.replace('{{BODY_CONTENT}}', bodyContent);
+  return WRAPPER
+    .replace('{{BODY_CONTENT}}', bodyContent)
+    .replace('{{UNIQUE_ID}}', `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -314,13 +309,26 @@ export async function sendWorkflowEmail(opts: {
 
   let body = customBody ?? '';
   if (!body && templateKey === 'interview-schedule') {
-    body = 'We are pleased to schedule your final interview. Please join using the details below.';
+    body = 'Congratulations on passing the initial screening! We would like to set an interview with you. Please note that if you do not join within 10 minutes of the scheduled time, we will consider your application as inactive.';
   }
   if (!body && templateKey === 'talent-pool') {
     body = "Thank you for your interest in Lifewood. While we don't have an immediate opening that matches your profile right now, we'd like to keep you in our talent pool for future opportunities.";
   }
 
-  const vars = { name, role, reason, body, interviewDate, meetLink };
+  const ACRONYMS = new Set(['ai', 'hr', 'it', 'qa', 'ui', 'ux', 'nlp', 'ml']);
+  const cleanRole = role
+    .split('-')
+    .reduce((parts, part) => {
+      if (parts.length > 0 && /^[a-z0-9]{4,8}$/.test(part) && parts.length >= 2) return parts;
+      return [...parts, part];
+    }, [] as string[])
+    .map(p => ACRONYMS.has(p.toLowerCase()) ? p.toUpperCase() : p.charAt(0).toUpperCase() + p.slice(1))
+    .join(' ');
+
+  const cleanName = name.replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  const cleanBody = (customBody ?? '').replace(/\n/g, '<br>');
+
+  const vars = { name: cleanName, role: cleanRole, reason, body: cleanBody, interviewDate, meetLink };
 
   const html = buildEmailHtml(templateKey, vars);
   const text = buildPlainText(html);

@@ -102,13 +102,18 @@ function fmtDateTime(iso: string | undefined) {
   });
 }
 
+function formatName(name: string): string {
+  return name.replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
 // Strips the trailing random ID suffix from position IDs (e.g. "ai-data-annotator-btfzkj" → "AI Data Annotator")
 function formatRole(role: string): string {
   const parts = role.split('-');
   if (parts.length > 1 && /^[a-z0-9]{4,8}$/.test(parts[parts.length - 1])) {
     parts.pop();
   }
-  return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+  const ACRONYMS = new Set(['ai', 'hr', 'it', 'qa', 'ui', 'ux', 'nlp', 'ml']);
+  return parts.map(p => ACRONYMS.has(p.toLowerCase()) ? p.toUpperCase() : p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
 }
 
 function ActionBtn({
@@ -202,7 +207,7 @@ function ApplicantDetailsGrid({ applicant }: { applicant: HRApplicant }) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="flex flex-col gap-2">
       {detailEntries.map(item => (
         <DetailItem key={item.label} label={item.label} value={item.value} />
       ))}
@@ -266,15 +271,17 @@ function Modal({
   onClose,
   children,
   wide,
+  medium,
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
   wide?: boolean;
+  medium?: boolean;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className={`w-full ${wide ? 'max-w-6xl' : 'max-w-lg'} rounded-[28px] border border-white/65 bg-[#f7f2e8]/35 p-1.5 shadow-[0_28px_80px_rgba(19,41,30,0.24)] backdrop-blur-md`}>
+      <div className={`w-full ${wide ? 'max-w-6xl' : medium ? 'max-w-2xl' : 'max-w-lg'} rounded-[28px] border border-white/65 bg-[#f7f2e8]/35 p-1.5 shadow-[0_28px_80px_rgba(19,41,30,0.24)] backdrop-blur-md`}>
         <div className="overflow-hidden rounded-[24px] bg-white shadow-[0_10px_30px_rgba(19,41,30,0.08)]">
           <div className="flex items-center justify-between border-b border-[#ece3d4] bg-gradient-to-br from-[#f7f2e8]/92 to-white px-6 py-4">
             <h3 className="text-[1rem] font-black text-[#193728]">{title}</h3>
@@ -300,10 +307,10 @@ function NameCell({ applicant, onViewDetails }: { applicant: HRApplicant; onView
   return (
     <td className="px-4 py-3">
       <div className="flex items-center gap-2.5">
-        <Avatar name={applicant.name} />
+        <Avatar name={formatName(applicant.name)} />
         <div className="min-w-0">
-          <p className="text-sm font-black text-[#1a2e1a] truncate max-w-[160px]">{applicant.name}</p>
-          <p className="text-[11px] text-[#8a9a8a] truncate max-w-[160px]">{applicant.email}</p>
+          <p className="text-sm font-black text-[#1a2e1a]">{formatName(applicant.name)}</p>
+          <p className="text-[11px] text-[#8a9a8a]">{applicant.email}</p>
           {onViewDetails ? (
             <button
               type="button"
@@ -391,12 +398,18 @@ export default function HRPipeline() {
 
   // ── Modal open helpers ────────────────────────────────────────────────────
 
+  const defaultInterviewDraft = (role: string) =>
+    `Congratulations on passing the initial screening for the ${formatRole(role)} position!\n\nWe would like to set an interview with you. Please review the date and details below.\n\nPlease note that if you do not join within 10 minutes of the scheduled time, we will consider your application as inactive. If you need to reschedule, please contact us in advance.\n\nThank you and best regards,\nThe Lifewood Team`;
+
+  const defaultRescheduleDraft = (role: string) =>
+    `We sincerely apologize for the inconvenience, but we need to reschedule your interview for the ${formatRole(role)} position due to unexpected circumstances on our end.\n\nPlease see your updated interview date and time below. All other details remain the same.\n\nAs a reminder, if you are unable to join within 10 minutes of the scheduled time, your application will be marked as inactive. If you need to further reschedule or have any concerns, please don't hesitate to reach out.\n\nThank you for your understanding and patience.\nThe Lifewood Team`;
+
   const openInterviewDraftModal = useCallback((id: string) => {
     const a = applicants.find(x => x.id === id);
     if (!a) return;
     setDraftInput(
       a.interviewEmailDraft ||
-        `Hi ${a.name},\n\nWe are pleased to invite you to an interview for the ${a.role} position at Lifewood.\n\nPlease join us at the scheduled time using the link below.\n\nBest regards,\nThe Lifewood HR Team`
+        defaultInterviewDraft(a.role)
     );
     setInterviewDateInput(
       a.interviewScheduledFor
@@ -417,10 +430,7 @@ export default function HRPipeline() {
         : ''
     );
     setMeetLinkInput(a.interviewMeetLink || '');
-    setDraftInput(
-      a.interviewEmailDraft ||
-      `Hi ${a.name},\n\nYour interview schedule for the ${a.role} position at Lifewood has been updated. Please review the revised details below.\n\nBest regards,\nThe Lifewood HR Team`
-    );
+    setDraftInput(defaultRescheduleDraft(a.role));
     setActionError(null);
     setModal({ kind: 'update-schedule', applicantId: id });
   }, [applicants]);
@@ -434,7 +444,7 @@ export default function HRPipeline() {
     if (!a) return;
     setRejectReason('');
     setRejectCustomBody(
-      `Hi ${a.name},\n\nThank you for your interest in the ${a.role} position at Lifewood.\n\nAfter careful consideration, we regret that we will not be moving forward. [reason here]\n\nWe appreciate your time and wish you all the best.\n\nBest regards,\nThe Lifewood HR Team`
+      `Hi ${formatName(a.name)},\n\nThank you for your interest in the ${formatRole(a.role)} position at Lifewood.\n\nAfter careful consideration, we regret that we will not be moving forward. [reason here]\n\nWe appreciate your time and wish you all the best.\n\nBest regards,\nThe Lifewood HR Team`
     );
     setActionError(null);
     setModal({ kind: 'reject', applicantId: id });
@@ -672,20 +682,16 @@ export default function HRPipeline() {
             />
           ) : (
             <ApplicantTable
-              headers={['Candidate', 'Position', 'AI Score', 'AI Results', 'Details', 'Recommendation', 'Actions']}
+              headers={['Candidate', 'Position', 'AI Results', 'Details', 'Actions']}
               rows={screeningCompleted}
               emptyMessage="No completed screening results yet."
               renderRow={a => {
-                const effectiveMockScreening = a.mockScreening ?? (a.screeningScore != null ? generateMockScreeningData(a.id, a.role, a.screeningScore) : null);
-                const recommendation = effectiveMockScreening?.recommendation ?? null;
                 return (
                   <>
                     <NameCell applicant={a} />
                     <td className="px-4 py-3 text-sm text-[#3a5a4a] font-semibold">{formatRole(a.role)}</td>
-                    <td className="px-4 py-3"><ScoreBadge score={a.screeningScore} /></td>
                     <td className="px-4 py-3"><GhostBtn onClick={() => setModal({ kind: 'screening-results', applicantId: a.id })}>View</GhostBtn></td>
                     <td className="px-4 py-3"><GhostBtn onClick={() => openApplicantDetailsModal(a.id)}>View</GhostBtn></td>
-                    <td className="px-4 py-3"><RecommendationBadge recommendation={recommendation} /></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
                         <ActionBtn onClick={() => openInterviewDraftModal(a.id)} disabled={working === a.id}>
@@ -706,38 +712,23 @@ export default function HRPipeline() {
 
       {activeTab === 'interviews' && (
         <div className="space-y-2">
-          <p className="text-xs text-[#6a8a7a] font-medium px-1">Scheduled interviews with applicant files, screening output, and submitted form details.</p>
           <ApplicantTable
-            headers={['Candidate', 'Position', 'AI Score', 'AI Results', 'Details', 'Schedule', 'Meeting Link', 'Status', 'Actions']}
+            headers={['Candidate', 'Date & Time', 'Meet Link', 'Details', 'Actions']}
             rows={interviewSchedule}
             emptyMessage="No interviews are scheduled right now."
             renderRow={a => (
               <>
                 <NameCell applicant={a} />
-                <td className="px-4 py-3 text-sm text-[#3a5a4a] font-semibold">{formatRole(a.role)}</td>
-                <td className="px-4 py-3"><ScoreBadge score={a.screeningScore} /></td>
-                <td className="px-4 py-3"><GhostBtn onClick={() => setModal({ kind: 'screening-results', applicantId: a.id })}>View</GhostBtn></td>
-                <td className="px-4 py-3"><GhostBtn onClick={() => openApplicantDetailsModal(a.id)}>View</GhostBtn></td>
                 <td className="px-4 py-3 min-w-[170px]">
-                  <div className="text-xs text-[#1a2e1a] font-semibold leading-relaxed">
-                    <p>{fmtDateTime(a.interviewScheduledFor)}</p>
-                  </div>
+                  <p className="text-xs text-[#1a2e1a] font-semibold">{fmtDateTime(a.interviewScheduledFor)}</p>
                 </td>
-                <td className="px-4 py-3 max-w-[200px]">
-                  {a.interviewMeetLink ? (
-                    <a
-                      href={a.interviewMeetLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs font-bold text-[#1a3a2a] hover:underline break-all"
-                    >
-                      Open Link
-                    </a>
-                  ) : (
-                    <span className="text-[#8a9a8a] text-xs">-</span>
-                  )}
+                <td className="px-4 py-3 min-w-[160px]">
+                  {a.interviewMeetLink
+                    ? <a href={a.interviewMeetLink} target="_blank" rel="noreferrer" className="text-xs text-[#1a6a3a] underline underline-offset-2 font-medium break-all">{a.interviewMeetLink}</a>
+                    : <span className="text-xs text-[#8a9a8a]">—</span>
+                  }
                 </td>
-                <td className="px-4 py-3"><StatusBadge status={a.status} /></td>
+                <td className="px-4 py-3"><GhostBtn onClick={() => openApplicantDetailsModal(a.id)}>View</GhostBtn></td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1.5">
                     <GhostBtn onClick={() => openUpdateScheduleModal(a.id)} disabled={working === a.id}>
@@ -765,7 +756,7 @@ export default function HRPipeline() {
         <div className="space-y-2">
           <p className="text-xs text-[#6a8a7a] font-medium px-1">Completed interviews with evaluation summaries and HR recommendations.</p>
           <ApplicantTable
-            headers={['Candidate', 'Position', 'AI Score', 'AI Results', 'Details', 'Feedback', 'HR Recommendation', 'Action']}
+            headers={['Candidate', 'Details', 'Feedback', 'HR Recommendation', 'Action']}
             rows={interviewResults}
             emptyMessage="No interview results to review."
             renderRow={a => {
@@ -774,17 +765,24 @@ export default function HRPipeline() {
               return (
                 <>
                   <NameCell applicant={a} />
-                  <td className="px-4 py-3 text-sm text-[#3a5a4a] font-semibold">{formatRole(a.role)}</td>
-                  <td className="px-4 py-3"><ScoreBadge score={a.screeningScore} /></td>
-                  <td className="px-4 py-3"><GhostBtn onClick={() => setModal({ kind: 'screening-results', applicantId: a.id })}>View</GhostBtn></td>
                   <td className="px-4 py-3"><GhostBtn onClick={() => openApplicantDetailsModal(a.id)}>View</GhostBtn></td>
-                  <td className="px-4 py-3 min-w-[200px]">
+                  <td className="px-4 py-3 min-w-[260px]">
                     <textarea
                       value={feedback}
-                      onChange={e => setInlineFeedback(prev => ({ ...prev, [a.id]: e.target.value }))}
+                      onChange={e => {
+                        const el = e.target;
+                        el.style.height = 'auto';
+                        el.style.height = `${el.scrollHeight}px`;
+                        setInlineFeedback(prev => ({ ...prev, [a.id]: e.target.value }));
+                      }}
+                      onFocus={e => {
+                        const el = e.target;
+                        el.style.height = 'auto';
+                        el.style.height = `${el.scrollHeight}px`;
+                      }}
                       placeholder="Add HR Feedback..."
                       rows={2}
-                      className="w-full rounded-lg border border-[#e8e3da] bg-[#faf8f4] px-3 py-1.5 text-xs text-[#1a2e1a] font-medium focus:outline-none focus:ring-2 focus:ring-[#1a3a2a]/20 resize-none leading-relaxed"
+                      className="w-full rounded-lg border border-[#e8e3da] bg-[#faf8f4] px-3 py-1.5 text-xs text-[#1a2e1a] font-medium focus:outline-none focus:ring-2 focus:ring-[#1a3a2a]/20 resize-none leading-relaxed overflow-hidden"
                     />
                   </td>
                   <td className="px-4 py-3 min-w-[160px]">
@@ -840,37 +838,31 @@ export default function HRPipeline() {
         <div className="space-y-2">
           <p className="text-xs text-[#6a8a7a] font-medium px-1">HR-recommended candidates awaiting final decision by the Company Head.</p>
           <ApplicantTable
-            headers={['Candidate', 'Position', 'AI Score', 'AI Responses', 'Feedback', 'Recommendation', 'Actions']}
+            headers={['Candidate', 'Details', 'Feedback', 'Recommendation', 'Actions']}
             rows={shortlisted}
             emptyMessage="No shortlisted candidates."
             renderRow={a => (
               <>
                 <NameCell applicant={a} />
-                <td className="px-4 py-3 text-sm text-[#3a5a4a] font-semibold">{formatRole(a.role)}</td>
                 <td className="px-4 py-3">
-                  <ScoreBadge score={a.screeningScore} />
-                </td>
-                <td className="px-4 py-3">
-                  <GhostBtn onClick={() => setModal({ kind: 'screening-results', applicantId: a.id })} disabled={working === a.id}>
+                  <GhostBtn onClick={() => openApplicantDetailsModal(a.id)} disabled={working === a.id}>
                     View
                   </GhostBtn>
                 </td>
-                <td className="px-4 py-3 max-w-[160px]">
-                  <p className="text-xs text-[#5a7a6a] leading-relaxed line-clamp-2">{a.hrFeedback || '—'}</p>
+                <td className="px-4 py-3 w-[240px]">
+                  <p className="text-xs text-[#5a7a6a] leading-relaxed whitespace-normal break-words">{a.hrFeedback || '—'}</p>
                 </td>
                 <td className="px-4 py-3">
                   <RecommendationBadge recommendation={a.hrRecommendation} />
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1.5">
-                    {/* Hired */}
                     <ActionBtn
                       onClick={() => void run(() => hireApplicant(a.id), `${a.name} has been hired!`)}
                       disabled={working === a.id}
                     >
                       Hired
                     </ActionBtn>
-                    {/* X → Talent Pool */}
                     <button
                       onClick={() => void run(() => moveToTalentPool(a.id), `${a.name} moved to Talent Pool`)}
                       disabled={working === a.id}
@@ -894,23 +886,17 @@ export default function HRPipeline() {
         <div className="space-y-2">
           <p className="text-xs text-[#6a8a7a] font-medium px-1">Candidates marked as hired after the welcome email was sent.</p>
           <ApplicantTable
-            headers={['Candidate', 'Position', 'AI Score', 'AI Responses', 'Details', 'Feedback', 'Recommendation']}
+            headers={['Candidate', 'Details', 'Feedback', 'Recommendation']}
             rows={hired}
             emptyMessage="No hired candidates yet."
             renderRow={a => (
               <>
                 <NameCell applicant={a} />
-                <td className="px-4 py-3 text-sm text-[#3a5a4a] font-semibold">{formatRole(a.role)}</td>
                 <td className="px-4 py-3">
-                  <ScoreBadge score={a.screeningScore} />
+                  <GhostBtn onClick={() => openApplicantDetailsModal(a.id)}>View</GhostBtn>
                 </td>
-                <td className="px-4 py-3">
-                  <GhostBtn onClick={() => setModal({ kind: 'screening-results', applicantId: a.id })}>
-                    View
-                  </GhostBtn>
-                </td>
-                <td className="px-4 py-3 max-w-[160px]">
-                  <p className="text-xs text-[#5a7a6a] leading-relaxed line-clamp-2">{a.hrFeedback || '—'}</p>
+                <td className="px-4 py-3 w-[240px]">
+                  <p className="text-xs text-[#5a7a6a] leading-relaxed whitespace-normal break-words">{a.hrFeedback || '—'}</p>
                 </td>
                 <td className="px-4 py-3">
                   <RecommendationBadge recommendation={a.hrRecommendation} />
@@ -926,28 +912,22 @@ export default function HRPipeline() {
         <div className="space-y-2">
           <p className="text-xs text-[#6a8a7a] font-medium px-1">Qualified candidates saved for future opportunities.</p>
           <ApplicantTable
-            headers={['Candidate', 'Position', 'AI Score', 'Responses', 'Feedback', 'Recommendation', 'Actions']}
+            headers={['Candidate', 'Details', 'Feedback', 'Recommendation', 'Actions']}
             rows={talentPool}
             emptyMessage="No candidates in the talent pool."
             renderRow={a => (
               <>
                 <NameCell applicant={a} />
-                <td className="px-4 py-3 text-sm text-[#3a5a4a] font-semibold">{formatRole(a.role)}</td>
-                <td className="px-4 py-3">
-                  <ScoreBadge score={a.screeningScore} />
+                <td className="px-4 py-3 w-[90px]">
+                  <GhostBtn onClick={() => openApplicantDetailsModal(a.id)}>View</GhostBtn>
                 </td>
                 <td className="px-4 py-3">
-                  <GhostBtn onClick={() => setModal({ kind: 'screening-results', applicantId: a.id })}>
-                    View
-                  </GhostBtn>
+                  <p className="text-xs text-[#5a7a6a] leading-relaxed whitespace-normal break-words">{a.hrFeedback || '—'}</p>
                 </td>
-                <td className="px-4 py-3 max-w-[160px]">
-                  <p className="text-xs text-[#5a7a6a] leading-relaxed line-clamp-2">{a.hrFeedback || '—'}</p>
-                </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 w-[180px]">
                   <RecommendationBadge recommendation={a.hrRecommendation} />
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 w-[120px]">
                   <GhostBtn onClick={() => openTalentPoolModal(a.id, true)} disabled={working === a.id}>
                     Re-engage
                   </GhostBtn>
@@ -965,7 +945,7 @@ export default function HRPipeline() {
         const applicant = applicants.find(a => a.id === modal.applicantId);
         if (!applicant) return null;
         return (
-          <Modal title={`Schedule Interview — ${applicant.name}`} onClose={closeModal}>
+          <Modal title={`Schedule Interview — ${formatName(applicant.name)}`} onClose={closeModal} medium>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -997,7 +977,7 @@ export default function HRPipeline() {
                   Email Body
                 </label>
                 <textarea
-                  rows={6}
+                  rows={12}
                   value={draftInput}
                   onChange={e => setDraftInput(e.target.value)}
                   className="w-full rounded-xl border border-[#e8e3da] bg-[#faf8f4] px-4 py-2.5 text-sm text-[#1a2e1a] font-medium leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#1a3a2a]/20 resize-none"
@@ -1034,7 +1014,7 @@ export default function HRPipeline() {
         const applicant = applicants.find(a => a.id === modal.applicantId);
         if (!applicant) return null;
         return (
-          <Modal title={`Update Schedule — ${applicant.name}`} onClose={closeModal}>
+          <Modal title={`Update Schedule — ${formatName(applicant.name)}`} onClose={closeModal} medium>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -1066,7 +1046,7 @@ export default function HRPipeline() {
                   Update Email Body
                 </label>
                 <textarea
-                  rows={6}
+                  rows={12}
                   value={draftInput}
                   onChange={e => setDraftInput(e.target.value)}
                   className="w-full rounded-xl border border-[#e8e3da] bg-[#faf8f4] px-4 py-2.5 text-sm text-[#1a2e1a] font-medium leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#1a3a2a]/20 resize-none"
@@ -1101,57 +1081,100 @@ export default function HRPipeline() {
       {modal?.kind === 'applicant-details' && (() => {
         const applicant = applicants.find(a => a.id === modal.applicantId);
         if (!applicant) return null;
+        const hasScreeningData = applicant.screeningScore != null;
+        const detailsMockScreening = applicant.mockScreening ??
+          (applicant.screeningScore != null ? generateMockScreeningData(applicant.id, applicant.role, applicant.screeningScore) : null);
+        const MODAL_H = 620;
         return (
-          <Modal title={`Applicant Details — ${applicant.name}`} onClose={closeModal} wide>
-            <div className="space-y-5">
-              {/* Top row: identity + status info */}
-              <div className="rounded-2xl border border-[#e8e3da] bg-[#fdfaf6] p-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <Avatar name={applicant.name} />
-                  <div className="min-w-0">
-                    <p className="text-base font-black text-[#1a2e1a]">{applicant.name}</p>
-                    <p className="text-sm font-semibold text-[#3a5a4a]">{formatRole(applicant.role)}</p>
-                    <p className="text-xs text-[#8a9a8a]">{applicant.email}</p>
+          <Modal title={`Applicant Details — ${formatName(applicant.name)}`} onClose={closeModal} wide>
+            <div className="flex gap-5" style={{ height: MODAL_H }}>
+
+              {/* Left column: compact details */}
+              <div className="w-[280px] shrink-0 flex flex-col gap-3 overflow-y-auto pr-1">
+                {/* Identity */}
+                <div className="rounded-2xl border border-[#e8e3da] bg-[#fdfaf6] p-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar name={formatName(applicant.name)} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-[#1a2e1a] truncate">{formatName(applicant.name)}</p>
+                      <p className="text-xs font-semibold text-[#3a5a4a] truncate">{formatRole(applicant.role)}</p>
+                      <p className="text-[11px] text-[#8a9a8a] truncate">{applicant.email}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <DetailItem label="Applied Date" value={fmtDate(applicant.appliedDate)} />
-                  <DetailItem label="Current Status" value={applicant.status || 'New'} />
-                  <DetailItem label="AI Score" value={applicant.screeningScore != null ? String(applicant.screeningScore) : '—'} />
-                  <DetailItem label="Interview Schedule" value={applicant.interviewScheduledFor ? fmtDateTime(applicant.interviewScheduledFor) : '—'} />
-                </div>
-              </div>
 
-              {/* Files + evaluation */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-[#e8e3da] bg-[#faf8f4] p-4 space-y-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a9a8a]">Applicant Files</p>
-                  <p className="text-sm text-[#4a6a5a]">Resume, screening output, and pipeline summary.</p>
-                  <div className="flex flex-wrap gap-2">
-                    <ResumeButton url={applicant.resumePath} />
-                    <GhostBtn onClick={() => setModal({ kind: 'screening-results', applicantId: applicant.id })}>
-                      View AI Results
-                    </GhostBtn>
+                {/* AI score summary if available */}
+                {hasScreeningData && detailsMockScreening && (
+                  <div className="rounded-2xl border border-[#e8e3da] bg-[#fdfaf6] p-3 space-y-1.5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a9a8a]">AI Screening</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <ScoreBadge score={applicant.screeningScore} />
+                      <RecommendationBadge recommendation={detailsMockScreening.recommendation} />
+                    </div>
                   </div>
+                )}
+
+                {/* Form details */}
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a9a8a] mb-2">Application Details</p>
+                  <ApplicantDetailsGrid applicant={applicant} />
                 </div>
-                <div className="rounded-2xl border border-[#e8e3da] bg-[#faf8f4] p-4 space-y-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a9a8a]">Evaluation</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <DetailItem label="Recommendation" value={applicant.hrRecommendation || applicant.mockScreening?.recommendation || '—'} />
-                    <DetailItem label="HR Feedback" value={applicant.hrFeedback || '—'} />
+
+                {/* AI Q&A if available */}
+                {hasScreeningData && detailsMockScreening && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a9a8a]">AI Responses</p>
+                    {detailsMockScreening.questions.map((q, i) => (
+                      <div key={i} className="rounded-xl border border-[#ede8e0] bg-white p-3 space-y-1.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-[11px] font-black text-[#1a3a2a] uppercase tracking-wide leading-relaxed flex-1">Q{i + 1}: {q.question}</p>
+                          <span className={`shrink-0 inline-block px-1.5 py-0.5 rounded font-black text-[10px] ${
+                            q.score >= 80 ? 'text-emerald-700 bg-emerald-50' : q.score >= 60 ? 'text-amber-700 bg-amber-50' : 'text-red-700 bg-red-50'
+                          }`}>{q.score}/100</span>
+                        </div>
+                        <p className="text-[11px] text-[#3a5a4a] leading-relaxed border-l-2 border-[#d0e8d8] pl-2 italic">"{q.answer}"</p>
+                        <p className="text-[10px] text-[#6a8a7a]"><span className="font-bold text-[#1a3a2a]">Feedback: </span>{q.feedback}</p>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
 
-              {/* Application form details */}
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a9a8a] mb-3">Application Form Details</p>
-                <ApplicantDetailsGrid applicant={applicant} />
+              {/* Right column: resume (focal point) */}
+              <div className="flex-1 flex flex-col gap-2 min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a9a8a]">Resume</p>
+                {applicant.resumePath ? (
+                  <div
+                    className="rounded-2xl border border-[#e8e3da] overflow-hidden flex-1 bg-white"
+                    style={{ height: MODAL_H - 36 }}
+                  >
+                    <iframe
+                      src={`${applicant.resumePath}#toolbar=0&navpanes=0&zoom=100`}
+                      title="Applicant Resume"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        minHeight: `${MODAL_H - 36}px`,
+                        display: 'block',
+                        border: 'none',
+                        background: 'white',
+                        colorScheme: 'light',
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    className="rounded-2xl border border-[#e8e3da] bg-[#faf8f4] flex items-center justify-center flex-1"
+                    style={{ height: MODAL_H - 36 }}
+                  >
+                    <p className="text-xs text-[#8a9a8a] font-medium">No resume uploaded</p>
+                  </div>
+                )}
               </div>
+            </div>
 
-              <div className="flex justify-end">
-                <GhostBtn onClick={closeModal}>Close</GhostBtn>
-              </div>
+            <div className="flex justify-end mt-4">
+              <GhostBtn onClick={closeModal}>Close</GhostBtn>
             </div>
           </Modal>
         );
@@ -1162,7 +1185,7 @@ export default function HRPipeline() {
         const applicant = applicants.find(a => a.id === modal.applicantId);
         if (!applicant) return null;
         return (
-          <Modal title={`Reject — ${applicant.name}`} onClose={closeModal}>
+          <Modal title={`Reject — ${formatName(applicant.name)}`} onClose={closeModal}>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-black text-[#1a3a2a] uppercase tracking-widest mb-1.5">
@@ -1220,29 +1243,21 @@ export default function HRPipeline() {
             ? generateMockScreeningData(applicant.id, applicant.role, applicant.screeningScore)
             : null);
         return (
-          <Modal title={`Screening Results — ${applicant.name}`} onClose={closeModal} wide>
+          <Modal title={`Screening Results — ${formatName(applicant.name)}`} onClose={closeModal} wide>
             <div className="space-y-4">
               <div className="grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)] gap-4">
                 <div className="rounded-2xl border border-[#e8e3da] bg-[#faf8f4] p-4">
                   <div className="flex items-center gap-3">
-                    <Avatar name={applicant.name} />
+                    <Avatar name={formatName(applicant.name)} />
                     <div>
-                      <p className="text-sm font-black text-[#1a2e1a]">{applicant.name}</p>
+                      <p className="text-sm font-black text-[#1a2e1a]">{formatName(applicant.name)}</p>
                       <p className="text-[11px] font-semibold text-[#3a5a4a]">{formatRole(applicant.role)}</p>
                       <p className="text-[11px] text-[#8a9a8a]">{applicant.email}</p>
                     </div>
                   </div>
-                  <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="mt-4 flex flex-col gap-2">
                     <DetailItem label="AI Score" value={applicant.screeningScore != null ? `${applicant.screeningScore}` : '—'} />
                     <DetailItem label="Recommendation" value={mockData?.recommendation || '—'} />
-                    <DetailItem label="Applied Date" value={fmtDate(applicant.appliedDate)} />
-                    <DetailItem label="Resume / CV" value={applicant.resumePath ? 'Available to view' : 'No CV uploaded'} />
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <ResumeButton url={applicant.resumePath} />
-                    <GhostBtn onClick={() => openApplicantDetailsModal(applicant.id)}>
-                      View Details
-                    </GhostBtn>
                   </div>
                 </div>
 
@@ -1297,7 +1312,7 @@ export default function HRPipeline() {
         const isReEngage = modal.reEngage === true;
         return (
           <Modal
-            title={isReEngage ? `Re-engage — ${applicant.name}` : `Move to Talent Pool — ${applicant.name}`}
+            title={isReEngage ? `Re-engage — ${formatName(applicant.name)}` : `Move to Talent Pool — ${formatName(applicant.name)}`}
             onClose={closeModal}
           >
             <div className="space-y-4">

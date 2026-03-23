@@ -207,30 +207,27 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
       const supabase = getSupabase();
       let resumeUrl: string | null = null;
 
-      // Upload resume through the backend so public applicants do not depend
-      // on browser-side Supabase storage permissions.
+      // Upload resume directly to Supabase storage (resumes bucket allows public insert).
       if (attachmentFile) {
         try {
-          const uploadForm = new FormData();
-          uploadForm.append('file', attachmentFile);
+          const ext = attachmentFile.name.split('.').pop() || 'pdf';
+          const uniquePath = `${crypto.randomUUID()}.${ext}`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('resumes')
+            .upload(uniquePath, attachmentFile, { contentType: attachmentFile.type, upsert: false });
 
-          const uploadRes = await fetch('/api/public/uploads', {
-            method: 'POST',
-            body: uploadForm,
-          });
-          const uploadData = await uploadRes.json().catch(() => ({}));
-
-          if (!uploadRes.ok) {
-            throw new Error(uploadData.error || 'Resume upload failed.');
+          if (uploadError) {
+            console.error('[EmploymentModal] Supabase resume upload error:', uploadError);
+            throw new Error(uploadError.message || 'Resume upload failed.');
           }
 
-          resumeUrl = typeof uploadData.url === 'string' ? uploadData.url : null;
-          if (!resumeUrl) {
-            throw new Error(uploadData.warning || 'Resume upload is not configured yet.');
+          if (uploadData) {
+            const { data: { publicUrl } } = supabase.storage.from('resumes').getPublicUrl(uploadData.path);
+            resumeUrl = publicUrl || null;
           }
         } catch (uploadErr) {
           console.error('[EmploymentModal] Resume upload error:', uploadErr);
-          throw new Error('Resume upload failed. Please try again in a moment.');
+          throw new Error('Resume upload failed. Please try again.');
         }
       }
 

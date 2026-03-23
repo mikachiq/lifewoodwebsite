@@ -1,6 +1,6 @@
 import React from 'react';
 import AdminShell from '../components/admin/AdminShell';
-import { createHRPosition, deleteHRPosition, HRPosition, listAdminHRPositions } from '../lib/hrPositions';
+import { createHRPosition, deleteHRPosition, HRPosition, listAdminHRPositions, notifyUsersNewPosition } from '../lib/hrPositions';
 import { useToast } from '../components/ToastProvider';
 import { getSupabase } from '../lib/supabaseClient';
 
@@ -98,6 +98,9 @@ export default function AdminHiringPage() {
         qualifications: '',
       });
       pushToast({ type: 'success', message: 'Position added.' });
+      void notifyUsersNewPosition(created.title).catch(err => {
+        console.warn('[AdminHiringPage] Failed to send new position notifications:', err);
+      });
     } catch (error) {
       console.error('[AdminHiringPage] create error', error);
       pushToast({ type: 'error', message: error instanceof Error ? error.message : 'Failed to add position.' });
@@ -141,94 +144,93 @@ export default function AdminHiringPage() {
       }
     >
       <div className="space-y-5">
-        <form onSubmit={handleCreate} className="bg-white rounded-2xl border border-[#e8e3da] shadow-sm p-6">
-          <h2 className="text-lg font-black text-[#1a2e1a] mb-4">Add Position</h2>
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <form onSubmit={handleCreate} className="bg-white rounded-2xl border border-[#e8e3da] shadow-sm p-5">
+          <h2 className="text-base font-black text-[#1a2e1a] mb-3">Add Position</h2>
+          <div className="space-y-2.5">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
               <input
                 name="title"
                 value={form.title}
                 onChange={handleChange}
                 placeholder="Position title"
-                className="w-full rounded-xl border border-[#dfd7ca] px-4 py-3 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a]"
+                className="col-span-2 lg:col-span-2 w-full rounded-xl border border-[#dfd7ca] px-3 py-2.5 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a]"
                 required
               />
               <input
                 name="department"
                 value={form.department}
                 onChange={handleChange}
-                placeholder="Department (e.g., Engineering)"
-                className="w-full rounded-xl border border-[#dfd7ca] px-4 py-3 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a]"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <input
-                name="employmentType"
-                value={form.employmentType}
-                onChange={handleChange}
-                placeholder="Full-Time"
-                className="w-full rounded-xl border border-[#dfd7ca] px-4 py-3 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a]"
+                placeholder="Department"
+                className="w-full rounded-xl border border-[#dfd7ca] px-3 py-2.5 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a]"
               />
               <input
                 name="location"
                 value={form.location}
                 onChange={handleChange}
                 placeholder="Location"
-                className="w-full rounded-xl border border-[#dfd7ca] px-4 py-3 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a]"
+                className="w-full rounded-xl border border-[#dfd7ca] px-3 py-2.5 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a]"
               />
               <input
                 name="workMode"
                 value={form.workMode}
                 onChange={handleChange}
-                placeholder="Onsite"
-                className="w-full rounded-xl border border-[#dfd7ca] px-4 py-3 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a]"
+                placeholder="Work mode"
+                className="w-full rounded-xl border border-[#dfd7ca] px-3 py-2.5 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a]"
               />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+              <input
+                name="employmentType"
+                value={form.employmentType}
+                onChange={handleChange}
+                placeholder="Employment type"
+                className="w-full rounded-xl border border-[#dfd7ca] px-3 py-2.5 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a]"
+              />
               <input
                 name="compensation"
                 value={form.compensation}
                 onChange={handleChange}
                 placeholder="Compensation"
-                className="w-full rounded-xl border border-[#dfd7ca] px-4 py-3 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a]"
+                className="w-full rounded-xl border border-[#dfd7ca] px-3 py-2.5 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a]"
               />
               <select
                 name="applicationFormType"
                 value={form.applicationFormType}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-[#dfd7ca] px-4 py-3 text-sm font-semibold text-[#1a2e1a] bg-white focus:outline-none focus:border-[#1a3a2a]"
+                className="col-span-2 w-full rounded-xl border border-[#dfd7ca] px-3 py-2.5 text-sm font-semibold text-[#1a2e1a] bg-white focus:outline-none focus:border-[#1a3a2a]"
               >
                 <option value="standard">Standard Application Form</option>
                 <option value="intern">Intern Application Form</option>
               </select>
             </div>
 
-            <textarea
-              name="details"
-              value={form.details}
-              onChange={handleChange}
-              placeholder="Other details (responsibilities, setup, team notes)"
-              rows={3}
-              className="w-full rounded-xl border border-[#dfd7ca] px-4 py-3 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a] resize-none"
-            />
-
-            <textarea
-              name="qualifications"
-              value={form.qualifications}
-              onChange={handleChange}
-              placeholder={'Qualifications (one per line)\nExample:\n3+ years experience\nStrong SQL and Python'}
-              rows={4}
-              className="w-full rounded-xl border border-[#dfd7ca] px-4 py-3 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a] resize-none"
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+              <textarea
+                name="details"
+                value={form.details}
+                onChange={handleChange}
+                placeholder="Other details (responsibilities, setup, team notes)"
+                rows={2}
+                className="w-full rounded-xl border border-[#dfd7ca] px-3 py-2.5 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a] resize-none"
+              />
+              <textarea
+                name="qualifications"
+                value={form.qualifications}
+                onChange={handleChange}
+                placeholder="Qualifications"
+                rows={2}
+                className="w-full rounded-xl border border-[#dfd7ca] px-3 py-2.5 text-sm font-semibold text-[#1a2e1a] focus:outline-none focus:border-[#1a3a2a] resize-none overflow-hidden"
+                onInput={e => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; }}
+              />
+            </div>
           </div>
 
-          <div className="flex justify-end mt-4">
+          <div className="flex justify-end mt-3">
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-3 rounded-xl bg-[#1a3a2a] text-white font-black text-sm hover:bg-[#29513a] transition-colors disabled:opacity-60"
+              className="px-5 py-2.5 rounded-xl bg-[#1a3a2a] text-white font-black text-sm hover:bg-[#29513a] transition-colors disabled:opacity-60"
             >
               {saving ? 'Adding...' : 'Add Position'}
             </button>
