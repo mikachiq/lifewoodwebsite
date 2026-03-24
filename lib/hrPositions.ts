@@ -37,6 +37,7 @@ export async function listAdminHRPositions() {
   const { data, error } = await supabase
     .from('hr_positions')
     .select('*')
+    .eq('is_deleted', false)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -87,7 +88,7 @@ export async function createHRPosition(input: {
 
 export async function deleteHRPosition(id: string) {
   const supabase = getSupabase();
-  const { error } = await supabase.from('hr_positions').delete().eq('id', id);
+  const { error } = await supabase.from('hr_positions').update({ is_deleted: true, deleted_at: new Date().toISOString() }).eq('id', id);
   if (error) throw error;
 }
 

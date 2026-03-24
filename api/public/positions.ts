@@ -8,6 +8,7 @@ export default async function handler(_req: IncomingMessage, res: ServerResponse
       .from('hr_positions')
       .select('*')
       .eq('is_active', true)
+      .eq('is_deleted', false)
       .order('created_at', { ascending: false });
 
     if (error) {

@@ -3,7 +3,6 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthProvider';
 import { useToast } from '../components/ToastProvider';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import { isValidEmail } from '../lib/validation';
 import { useProfile } from '../hooks/useProfile';
 
 type LocationState = { from?: string; message?: string } | null;
@@ -58,7 +57,7 @@ export default function LoginPage() {
       setError('Email and password are required.');
       return;
     }
-    if (!isValidEmail(email.trim())) {
+    if (!email.trim().includes('@')) {
       setError('Enter a valid email address.');
       return;
     }
@@ -79,15 +78,19 @@ export default function LoginPage() {
         return;
       }
 
-      pushToast({ type: 'success', message: 'Signed in.' });
-
-      // Redirect admins directly to the dashboard
-      const supabaseClient = getSupabase();
-      const { data: profileData } = await supabaseClient
+      const { data: profileData } = await supabase
         .from('profiles')
-        .select('is_admin')
+        .select('is_admin, is_deleted')
         .eq('id', signedInUser.id)
         .single();
+
+      if (profileData?.is_deleted) {
+        await supabase.auth.signOut();
+        setError('This account no longer exists.');
+        return;
+      }
+
+      pushToast({ type: 'success', message: 'Signed in.' });
 
       if (profileData?.is_admin) {
         navigate('/admin', { replace: true });

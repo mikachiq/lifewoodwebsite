@@ -171,7 +171,10 @@ export default function SignupPage() {
       if (error) throw error;
       setStage('verify');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Sign up failed. Please try again.';
+      const raw = err instanceof Error ? err.message : '';
+      const message = raw.toLowerCase().includes('already registered') || raw.toLowerCase().includes('already exists')
+        ? 'An account with this email already exists.'
+        : raw || 'Sign up failed. Please try again.';
       pushToast({ type: 'error', message });
     } finally {
       setSubmitting(false);

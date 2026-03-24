@@ -374,11 +374,12 @@ function NameCell({ applicant, onViewDetails }: { applicant: HRApplicant; onView
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function HRPipeline() {
+export default function HRPipeline({ refreshKey }: { refreshKey?: number }) {
   const {
     applicants,
     loading,
     working,
+    refresh,
     approveRecentApplicant,
     completeScreening,
     scheduleInterview,
@@ -390,6 +391,14 @@ export default function HRPipeline() {
     revertApplicantStatus,
     updateInterviewDetails,
   } = useHRPipeline();
+
+  const prevRefreshKey = React.useRef(refreshKey);
+  React.useEffect(() => {
+    if (refreshKey !== prevRefreshKey.current) {
+      prevRefreshKey.current = refreshKey;
+      void refresh();
+    }
+  }, [refreshKey, refresh]);
 
   const [activeTab, setActiveTab] = useState<Tab>('new');
   const [screeningSubTab, setScreeningSubTab] = useState<ScreeningSubTab>('pending');

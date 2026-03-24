@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getSupabase } from '../../lib/supabaseClient';
+import { useProfile } from '../../hooks/useProfile';
 
 type AdminNotif = {
   id: string;
@@ -15,72 +16,20 @@ type AdminShellProps = {
   title: string;
   subtitle: string;
   actions?: React.ReactNode;
+  onRefresh?: () => void;
+  refreshing?: boolean;
   children: React.ReactNode;
 };
 
-const NAV_ITEMS = [
-  {
-    href: '/admin',
-    label: 'Overview',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <rect x="14" y="14" width="7" height="7" rx="1" />
-      </svg>
-    ),
-  },
-  {
-    href: '/admin?section=contacts',
-    label: 'Contacts',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-      </svg>
-    ),
-  },
-  {
-    href: '/admin?section=applicants',
-    label: 'Applicants',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-      </svg>
-    ),
-  },
-  {
-    href: '/admin?section=projects',
-    label: 'Projects',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-        <polyline points="22 4 12 14.01 9 11.01" />
-      </svg>
-    ),
-  },
-  {
-    href: '/admin/posts',
-    label: 'Posts',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path d="M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" />
-        <path d="M8 8h8M8 12h8M8 16h5" />
-      </svg>
-    ),
-  },
-  {
-    href: '/admin/hiring',
-    label: 'Hiring',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path d="M4 7h16M7 3v8M17 3v8M5 11h14a2 2 0 012 2v5a3 3 0 01-3 3H6a3 3 0 01-3-3v-5a2 2 0 012-2z" />
-      </svg>
-    ),
-  },
-] as const;
+const ALL_NAV_ITEMS = [
+  { href: '/admin', label: 'Overview', superAdminOnly: false, icon: (<svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>) },
+  { href: '/admin?section=contacts', label: 'Contacts', superAdminOnly: false, icon: (<svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>) },
+  { href: '/admin?section=applicants', label: 'Applicants', superAdminOnly: false, icon: (<svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>) },
+  { href: '/admin?section=projects', label: 'Projects', superAdminOnly: false, icon: (<svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>) },
+  { href: '/admin/posts', label: 'Posts', superAdminOnly: true, icon: (<svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>) },
+  { href: '/admin/hiring', label: 'Hiring', superAdminOnly: true, icon: (<svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M4 7h16M7 3v8M17 3v8M5 11h14a2 2 0 012 2v5a3 3 0 01-3 3H6a3 3 0 01-3-3v-5a2 2 0 012-2z"/></svg>) },
+  { href: '/admin?section=logs', label: 'Logs', superAdminOnly: false, icon: (<svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>) },
+];
 
 function isActive(pathname: string, search: string, href: string) {
   if (href.startsWith('/admin/posts')) return pathname.startsWith('/admin/posts');
@@ -89,7 +38,9 @@ function isActive(pathname: string, search: string, href: string) {
   return pathname === '/admin' && search === href.replace('/admin', '');
 }
 
-export default function AdminShell({ title, subtitle, actions, children }: AdminShellProps) {
+export default function AdminShell({ title, subtitle, actions, onRefresh, refreshing, children }: AdminShellProps) {
+  const { isSuperAdmin } = useProfile();
+  const NAV_ITEMS = ALL_NAV_ITEMS.filter(item => !item.superAdminOnly || isSuperAdmin);
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [adminNotifs, setAdminNotifs] = React.useState<AdminNotif[]>([]);
   const [notifOpen, setNotifOpen] = React.useState(false);
@@ -375,7 +326,21 @@ export default function AdminShell({ title, subtitle, actions, children }: Admin
               <h1 className="text-2xl font-black text-[#1a2e1a] tracking-tight">{title}</h1>
               <p className="text-sm text-[#6a8a7a] font-medium mt-0.5">{subtitle}</p>
             </div>
-            <div className="flex items-center gap-3 shrink-0">{actions}</div>
+            <div className="flex items-center gap-3 shrink-0">
+              {actions}
+              {onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  disabled={refreshing}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#1a3a2a] text-white font-bold text-xs rounded-xl hover:bg-[#2a5a3a] transition-all disabled:opacity-50 uppercase tracking-wider"
+                >
+                  <svg className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  </svg>
+                  Refresh
+                </button>
+              )}
+            </div>
           </div>
           {children}
         </div>

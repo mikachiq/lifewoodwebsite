@@ -102,10 +102,12 @@ export async function getAllInquiries(): Promise<Inquiry[]> {
     supabase
       .from('inquiries')
       .select('id, created_at, email, name, message, context, status, position, organization, first_name, last_name, phone, country, city, experience, work_location, availability, languages, skills, cover_letter, linkedin, portfolio, additional_info, university, course_program, internship_hours, role, service, engagement_model, data_volume, tech_stack, success_criteria, attachment_url, attachment_name')
+      .eq('is_deleted', false)
       .order('created_at', { ascending: false }),
     supabase
       .from('hr_applicants')
-      .select('id, created_at, applied_date, email, name, role, status, notes, resume_path'),
+      .select('id, created_at, applied_date, email, name, role, status, notes, resume_path')
+      .eq('is_deleted', false),
   ]);
 
   if (inquiriesError) throw inquiriesError;
@@ -182,14 +184,14 @@ export async function getInquiryStats(): Promise<InquiryStats> {
     { count: hrApplicantsNewThisWeek },
     { count: closedCount },
   ] = await Promise.all([
-    supabase.from('inquiries').select('*', { count: 'exact', head: true }),
-    supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('context', 'contact'),
-    supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('context', 'career'),
-    supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('context', 'project'),
-    supabase.from('inquiries').select('*', { count: 'exact', head: true }).gte('created_at', oneWeekAgo),
-    supabase.from('hr_applicants').select('*', { count: 'exact', head: true }),
-    supabase.from('hr_applicants').select('*', { count: 'exact', head: true }).gte('applied_date', oneWeekAgo),
-    supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('status', 'closed'),
+    supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('is_deleted', false),
+    supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('is_deleted', false).eq('context', 'contact'),
+    supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('is_deleted', false).eq('context', 'career'),
+    supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('is_deleted', false).eq('context', 'project'),
+    supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('is_deleted', false).gte('created_at', oneWeekAgo),
+    supabase.from('hr_applicants').select('*', { count: 'exact', head: true }).eq('is_deleted', false),
+    supabase.from('hr_applicants').select('*', { count: 'exact', head: true }).eq('is_deleted', false).gte('applied_date', oneWeekAgo),
+    supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('is_deleted', false).eq('status', 'closed'),
   ]);
 
   return {
@@ -216,22 +218,22 @@ export async function updateInquiryStatus(id: string, status: string, source: In
 export async function deleteInquiry(id: string, source: Inquiry['source'] = 'inquiries') {
   const supabase = getSupabase();
 
+  const now = new Date().toISOString();
+
   if (source === 'hr_applicants') {
-    const { error, count } = await supabase
+    const { error } = await supabase
       .from('hr_applicants')
-      .delete({ count: 'exact' })
+      .update({ is_deleted: true, deleted_at: now })
       .eq('id', id);
 
     if (error) throw error;
-    if (count === 0) throw new Error('Delete blocked on hr_applicants.');
     return;
   }
 
-  const { error, count } = await supabase
+  const { error } = await supabase
     .from('inquiries')
-    .delete({ count: 'exact' })
+    .update({ is_deleted: true, deleted_at: now })
     .eq('id', id);
 
   if (error) throw error;
-  if (count === 0) throw new Error('Delete blocked - check Supabase RLS policies for inquiries.');
 }

@@ -4,16 +4,18 @@ import { useProfile } from '../hooks/useProfile';
 import { useToast } from '../components/ToastProvider';
 import { deleteInquiry, getInquiryStats, getAllInquiries, Inquiry, InquiryStats, updateInquiryStatus } from '../lib/admin';
 import HRPipeline from '../components/admin/HRPipeline';
+import AdminLogsPanel from '../components/admin/AdminLogsPanel';
 import { exportInquiriesWorkbook } from '../lib/adminExport';
 import { getSupabase } from '../lib/supabaseClient';
 import { useConfirm } from '../components/ConfirmModal';
+import { logAdminAction, fetchAllAdminLogs } from '../lib/adminLogs';
 
 let cachedDashboardStats: InquiryStats | null = null;
 let cachedDashboardInquiries: Inquiry[] | null = null;
 
 const STATUS_OPTIONS = ['new', 'contacted', 'closed'] as const;
 type Status = typeof STATUS_OPTIONS[number];
-type NavSection = 'overview' | 'contacts' | 'applicants' | 'projects' | 'posts' | 'hiring';
+type NavSection = 'overview' | 'contacts' | 'applicants' | 'projects' | 'posts' | 'hiring' | 'logs';
 type AdminNotif = {
   id: string;
   type: string;
@@ -119,7 +121,7 @@ function ContextBadge({ context }: { context: string }) {
   return null;
 }
 
-const NAV_ITEMS: { key: NavSection; label: string; icon: React.ReactNode; href?: string }[] = [
+const NAV_ITEMS: { key: NavSection; label: string; icon: React.ReactNode; href?: string; superAdminOnly?: boolean }[] = [
   {
     key: 'overview',
     label: 'Overview',
@@ -162,6 +164,7 @@ const NAV_ITEMS: { key: NavSection; label: string; icon: React.ReactNode; href?:
     key: 'posts',
     label: 'Posts',
     href: '/admin/posts',
+    superAdminOnly: true,
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
         <path d="M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/>
@@ -173,9 +176,19 @@ const NAV_ITEMS: { key: NavSection; label: string; icon: React.ReactNode; href?:
     key: 'hiring',
     label: 'Hiring',
     href: '/admin/hiring',
+    superAdminOnly: true,
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
         <path d="M4 7h16M7 3v8M17 3v8M5 11h14a2 2 0 012 2v5a3 3 0 01-3 3H6a3 3 0 01-3-3v-5a2 2 0 012-2z" />
+      </svg>
+    ),
+  },
+  {
+    key: 'logs',
+    label: 'Logs',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
       </svg>
     ),
   },
@@ -272,7 +285,7 @@ The Lifewood Team`;
 }
 
 export default function AdminDashboardPage() {
-  const { profile } = useProfile();
+  const { profile, isSuperAdmin } = useProfile();
   const { pushToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -319,7 +332,7 @@ export default function AdminDashboardPage() {
 
   const loadData = async () => {
     try {
-      setLoading(!(cachedDashboardStats && cachedDashboardInquiries));
+      setLoading(true);
       const [statsData, inquiriesData] = await Promise.all([
         getInquiryStats(),
         getAllInquiries(),
@@ -344,7 +357,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const section = params.get('section');
-    if (section === 'contacts' || section === 'applicants' || section === 'projects') {
+    if (section === 'contacts' || section === 'applicants' || section === 'projects' || section === 'logs') {
       setActiveSection(section);
       return;
     }
@@ -394,6 +407,7 @@ export default function AdminDashboardPage() {
     try {
       setUpdatingId(id);
       await updateInquiryStatus(id, newStatus, inquiry.source);
+      void logAdminAction('status_changed', inquiry.context, capitalizeName(inquiry.name || inquiry.email), `Status changed to: ${newStatus}`);
       setInquiries(prev => {
         const next = prev.map(inq => inq.id === id ? { ...inq, status: newStatus } : inq);
         cachedDashboardInquiries = next;
@@ -416,6 +430,10 @@ export default function AdminDashboardPage() {
       setUpdatingId('bulk-delete');
       const selectedItems = inquiries.filter(item => selectedInquiryIds.includes(item.id));
       await Promise.all(selectedItems.map(item => deleteInquiry(item.id, item.source)));
+      for (const item of selectedItems) {
+        const actionKey = item.source === 'hr_applicants' ? 'deleted_applicant' : item.context === 'contact' ? 'deleted_inquiry' : 'deleted_application';
+        void logAdminAction(actionKey, item.context, capitalizeName(item.name || item.email));
+      }
       setInquiries(prev => {
         const next = prev.filter(item => !selectedInquiryIds.includes(item.id));
         cachedDashboardInquiries = next;
@@ -431,10 +449,11 @@ export default function AdminDashboardPage() {
   };
 
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
       setExporting(true);
-      exportInquiriesWorkbook(inquiries);
+      const logs = await fetchAllAdminLogs();
+      exportInquiriesWorkbook(inquiries, logs);
       pushToast({ type: 'success', message: 'Workbook exported for Excel/Sheets.' });
     } catch {
       pushToast({ type: 'error', message: 'Failed to export workbook.' });
@@ -459,6 +478,7 @@ export default function AdminDashboardPage() {
     projects: 'Project Requests',
     posts: 'Posts',
     hiring: 'Hiring',
+    logs: 'Activity Logs',
   };
   const sectionSub: Record<NavSection, string> = {
     overview: 'Overview of all inquiries and submission activity.',
@@ -467,6 +487,7 @@ export default function AdminDashboardPage() {
     projects: 'Project client requests submitted through the Portal.',
     posts: 'Manage company news and announcements.',
     hiring: 'Manage job positions and applicant pipeline.',
+    logs: 'Track every action performed by admins across the system.',
   };
   const unread = adminNotifs.filter(n => !n.read).length;
 
@@ -631,7 +652,7 @@ export default function AdminDashboardPage() {
 
         {/* Nav */}
         <nav className="flex-1 py-4 overflow-y-auto">
-          {NAV_ITEMS.map(item => (
+          {NAV_ITEMS.filter(item => !item.superAdminOnly || isSuperAdmin).map(item => (
             <button
               key={item.key}
               onClick={() => {
@@ -748,10 +769,13 @@ export default function AdminDashboardPage() {
           )}
 
           {/* HR Pipeline — applicants section */}
-          {activeSection === 'applicants' && <HRPipeline />}
+          {activeSection === 'applicants' && <HRPipeline refreshKey={refreshKey} />}
 
-          {/* Table — hidden on applicants (which uses HRPipeline above) */}
-          {activeSection !== 'applicants' && (<div className="bg-white rounded-2xl border border-[#e8e3da] shadow-sm overflow-hidden">
+          {/* Logs section */}
+          {activeSection === 'logs' && <AdminLogsPanel isSuperAdmin={isSuperAdmin} refreshKey={refreshKey} />}
+
+          {/* Table — hidden on applicants and logs */}
+          {activeSection !== 'applicants' && activeSection !== 'logs' && (<div className="bg-white rounded-2xl border border-[#e8e3da] shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-[#f0ebe2] flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3 flex-wrap">
                 <h2 className="font-black text-[#1a2e1a] text-base">
@@ -1134,9 +1158,16 @@ export default function AdminDashboardPage() {
                         { label: 'Date', value: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) },
                       ] : [];
 
+                    const recipientEmail = respondTarget.email?.trim() ?? '';
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+                      pushToast({ type: 'error', message: 'This email address does not exist or is invalid.' });
+                      setSendingEmail(false);
+                      return;
+                    }
+
                     const { error } = await supabase.functions.invoke('send-email', {
                       body: {
-                        to: respondTarget.email,
+                        to: recipientEmail,
                         name: capitalizeName(respondTarget.name || respondTarget.email),
                         subject: `Re: Your Lifewood ${respondTarget.context === 'career' ? 'Application' : respondTarget.context === 'project' ? 'Project Request' : 'Inquiry'}`,
                         body: emailBody,
@@ -1162,10 +1193,14 @@ export default function AdminDashboardPage() {
                       read: false,
                     });
 
+                    const replyAction = respondTarget.context === 'career' ? 'replied_to_application' : respondTarget.context === 'project' ? 'replied_to_project' : 'replied_to_inquiry';
+                    void logAdminAction(replyAction, respondTarget.context, capitalizeName(respondTarget.name || respondTarget.email), `Email sent to ${respondTarget.email}`);
                     pushToast({ type: 'success', message: `Email sent to ${respondTarget.email}` });
                     setRespondTarget(null);
                   } catch (err) {
-                    pushToast({ type: 'error', message: 'Failed to send email. Check the edge function logs.' });
+                    const msg = err instanceof Error ? err.message.toLowerCase() : '';
+                    const isInvalidEmail = msg.includes('invalid') || msg.includes('not found') || msg.includes('does not exist') || msg.includes('recipient') || msg.includes('bounce');
+                    pushToast({ type: 'error', message: isInvalidEmail ? 'This email address does not exist or is invalid.' : 'Failed to send email. Please try again.' });
                   } finally {
                     setSendingEmail(false);
                   }

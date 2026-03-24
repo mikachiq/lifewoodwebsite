@@ -24,6 +24,7 @@ import SignupPage from './pages/SignupPage';
 import ProfilePage from './pages/ProfilePage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
+import SuperAdminProtectedRoute from './components/SuperAdminProtectedRoute';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminPostsPage from './pages/AdminPostsPage';
 import AdminPostEditorPage from './pages/AdminPostEditorPage';
@@ -214,33 +215,33 @@ const App: React.FC = () => {
           <Route
             path="/admin/posts"
             element={
-              <AdminProtectedRoute>
+              <SuperAdminProtectedRoute>
                 <AdminPostsPage />
-              </AdminProtectedRoute>
+              </SuperAdminProtectedRoute>
             }
           />
           <Route
             path="/admin/posts/create"
             element={
-              <AdminProtectedRoute>
+              <SuperAdminProtectedRoute>
                 <AdminPostEditorPage />
-              </AdminProtectedRoute>
+              </SuperAdminProtectedRoute>
             }
           />
           <Route
             path="/admin/posts/:id/edit"
             element={
-              <AdminProtectedRoute>
+              <SuperAdminProtectedRoute>
                 <AdminPostEditorPage />
-              </AdminProtectedRoute>
+              </SuperAdminProtectedRoute>
             }
           />
           <Route
             path="/admin/hiring"
             element={
-              <AdminProtectedRoute>
+              <SuperAdminProtectedRoute>
                 <AdminHiringPage />
-              </AdminProtectedRoute>
+              </SuperAdminProtectedRoute>
             }
           />
           <Route

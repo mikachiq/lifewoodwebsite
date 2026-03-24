@@ -1,4 +1,5 @@
 import type { Inquiry } from './admin';
+import type { AdminLogEntry } from './adminLogs';
 
 function xmlEscape(value: unknown) {
   return String(value ?? '')
@@ -37,7 +38,7 @@ function buildWorksheet(name: string, columns: string[], rows: string[][]) {
   return `<Worksheet ss:Name="${xmlEscape(name)}"><Table><Row>${headerXml}</Row>${rowsXml}</Table></Worksheet>`;
 }
 
-export function exportInquiriesWorkbook(inquiries: Inquiry[]) {
+export function exportInquiriesWorkbook(inquiries: Inquiry[], logs: AdminLogEntry[] = []) {
   const applications = inquiries.filter(item => item.context === 'career');
   const contacts = inquiries.filter(item => item.context === 'contact');
   const projects = inquiries.filter(item => item.context === 'project');
@@ -97,6 +98,19 @@ export function exportInquiriesWorkbook(inquiries: Inquiry[]) {
      formatDate(item.created_at),
    ]),
  )}
+ ${buildWorksheet(
+   'Activity Logs',
+   ['Timestamp', 'Admin Name', 'Admin Email', 'Action', 'Target', 'Details', 'Remarks'],
+   logs.map(log => [
+     formatDate(log.created_at),
+     log.admin_name || '',
+     log.admin_email,
+     log.action.replace(/_/g, ' '),
+     log.target_name || '',
+     log.details || '',
+     log.remarks || '',
+   ]),
+ )}
 </Workbook>`;
 
   const blob = new Blob([workbook], { type: 'application/vnd.ms-excel;charset=utf-8;' });
@@ -109,3 +123,4 @@ export function exportInquiriesWorkbook(inquiries: Inquiry[]) {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+

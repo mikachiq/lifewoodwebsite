@@ -40,9 +40,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      setLoading(false);
+      if (newSession?.user) {
+        void (async () => {
+          try {
+            const { data } = await supabase
+              .from('profiles')
+              .select('is_deleted')
+              .eq('id', newSession.user.id)
+              .single();
+            if (data?.is_deleted) {
+              await supabase.auth.signOut();
+              return;
+            }
+          } catch {
+            // allow login if profile check fails
+          }
+          setSession(newSession);
+          setUser(newSession.user);
+          if (mounted) setLoading(false);
+        })();
+      } else {
+        setSession(newSession);
+        setUser(null);
+        setLoading(false);
+      }
     });
 
     return () => {

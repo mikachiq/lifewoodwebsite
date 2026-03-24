@@ -3,6 +3,7 @@ import AdminShell from '../components/admin/AdminShell';
 import { createHRPosition, deleteHRPosition, HRPosition, listAdminHRPositions, notifyUsersNewPosition } from '../lib/hrPositions';
 import { useToast } from '../components/ToastProvider';
 import { getSupabase } from '../lib/supabaseClient';
+import { logAdminAction } from '../lib/adminLogs';
 
 type PositionWithCount = HRPosition & { applicantCount: number };
 
@@ -85,6 +86,7 @@ export default function AdminHiringPage() {
           .filter(Boolean),
       });
 
+      void logAdminAction('position_created', 'hr_position', created.title);
       setPositions(prev => [{ ...created, applicantCount: 0 }, ...prev]);
       setForm({
         title: '',
@@ -112,7 +114,9 @@ export default function AdminHiringPage() {
   const handleDelete = async (id: string) => {
     try {
       setRemovingId(id);
+      const pos = positions.find(p => p.id === id);
       await deleteHRPosition(id);
+      void logAdminAction('position_deleted', 'hr_position', pos?.title ?? id);
       setPositions(prev => prev.filter(position => position.id !== id));
       pushToast({ type: 'success', message: 'Position deleted.' });
     } catch (error) {
@@ -127,6 +131,8 @@ export default function AdminHiringPage() {
     <AdminShell
       title="Hiring"
       subtitle="Add and manage open positions for the careers page."
+      onRefresh={() => void load()}
+      refreshing={loading}
       actions={
         <div className="flex items-center gap-3">
           <a

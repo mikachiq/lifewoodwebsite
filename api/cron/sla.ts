@@ -30,7 +30,7 @@ export default async function handler(_req: IncomingMessage, res: ServerResponse
       checked += overdueFollowUp.length;
       for (const a of overdueFollowUp) {
         try { await sendWorkflowEmail({ templateKey: 'inactive', to: a.email, name: a.name, role: a.role }); } catch { /* continue */ }
-        const { error } = await supabase.from('hr_applicants').delete().eq('id', a.id);
+        const { error } = await supabase.from('hr_applicants').update({ is_deleted: true, deleted_at: now }).eq('id', a.id);
         if (!error) markedInactive++;
       }
     }

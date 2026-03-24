@@ -10,6 +10,7 @@ type ProfileRow = {
   id: string;
   username: string | null;
   avatar_url: string | null;
+  is_admin: boolean | null;
   updated_at: string | null;
 };
 
@@ -36,6 +37,8 @@ export default function ProfilePage() {
   const [editingUsername, setEditingUsername] = useState(false);
   const [editingEmail, setEditingEmail] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [usernameDraft, setUsernameDraft] = useState('');
   const [emailDraft, setEmailDraft] = useState('');
@@ -159,7 +162,7 @@ export default function ProfilePage() {
         .from('profiles')
         .update({ username: value, updated_at: new Date().toISOString() })
         .eq('id', user.id)
-        .select('id, username, avatar_url, updated_at')
+        .select('id, username, avatar_url, is_admin, updated_at')
         .single();
 
       if (error) throw error;
@@ -238,7 +241,7 @@ export default function ProfilePage() {
         .from('profiles')
         .update({ avatar_url: path, updated_at: new Date().toISOString() })
         .eq('id', user.id)
-        .select('id, username, avatar_url, updated_at')
+        .select('id, username, avatar_url, is_admin, updated_at')
         .single();
       if (error) throw error;
 
@@ -256,6 +259,24 @@ export default function ProfilePage() {
   const onSignOut = async () => {
     await signOut();
     navigate('/login', { replace: true });
+  };
+
+  const deleteAccount = async () => {
+    try {
+      setDeleting(true);
+      const supabase = getSupabase();
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+        .eq('id', user.id);
+      if (error) throw error;
+      await signOut();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      pushToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to delete account.' });
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
   };
 
   const cardClass =
@@ -328,6 +349,45 @@ export default function ProfilePage() {
                   className="block w-full text-sm font-semibold text-green-1 dark:text-green-4 file:mr-4 file:py-2.5 file:px-4 file:rounded-2xl file:border-0 file:bg-castleton-green file:text-white file:font-black hover:file:opacity-90"
                 />
               </div>
+
+              {!profile?.is_admin && (
+                <div className="mt-8 pt-6 border-t border-red-200 dark:border-red-900/40">
+                  <div className={`block mb-1 text-[11px] font-bold uppercase tracking-wider text-red-500 dark:text-red-400 opacity-85`}>Danger zone</div>
+                  <p className="text-xs font-semibold text-red-400 dark:text-red-500/80 mb-3">
+                    Deleting your account is permanent and cannot be undone.
+                  </p>
+                  {!confirmDelete ? (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(true)}
+                      className="px-5 py-2 text-sm font-black text-red-600 dark:text-red-400 border-2 border-red-300 dark:border-red-700 rounded-full hover:bg-red-600 hover:text-white dark:hover:bg-red-700 dark:hover:text-white transition-all"
+                    >
+                      Delete account
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs font-black text-red-600 dark:text-red-400">Are you sure? This cannot be undone.</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void deleteAccount()}
+                          disabled={deleting}
+                          className="px-5 py-2 text-sm font-black bg-red-600 text-white rounded-full hover:bg-red-700 transition-all disabled:opacity-60"
+                        >
+                          {deleting ? 'Deleting…' : 'Yes, delete'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDelete(false)}
+                          className="px-5 py-2 text-sm font-black text-green-2 dark:text-green-4 border-2 border-paper dark:border-green-800 rounded-full hover:bg-paper dark:hover:bg-green-900/30 transition-all"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="lg:col-span-2 space-y-6">

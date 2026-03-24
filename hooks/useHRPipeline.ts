@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getSupabase } from '../lib/supabaseClient';
+import { logAdminAction } from '../lib/adminLogs';
 
 // ── Type definitions ──────────────────────────────────────────────────────────
 
@@ -368,6 +369,7 @@ export function useHRPipeline() {
       const { data, error } = await supabase
         .from('hr_applicants')
         .select('*')
+        .eq('is_deleted', false)
         .order('applied_date', { ascending: false });
       if (error) throw error;
       setApplicants((data || []).map(mapRow));
@@ -435,7 +437,7 @@ export function useHRPipeline() {
     setWorking(id);
     try {
       const supabase = getSupabase();
-      const { error } = await supabase.from('hr_applicants').delete().eq('id', id);
+      const { error } = await supabase.from('hr_applicants').update({ is_deleted: true, deleted_at: new Date().toISOString() }).eq('id', id);
       if (error) throw error;
     } catch (err) {
       void fetchAll(); // re-fetch on error to restore state
@@ -457,6 +459,7 @@ export function useHRPipeline() {
       { status: 'Screening Sent', previous_status: a.status, screening_sent_at: now, last_contacted: now, response_due_at: responseDueAt },
       () => sendEmail({ templateKey: 'screening-link', to: a.email, name: a.name, role: a.role })
     );
+    void logAdminAction('applicant_stage_changed', 'hr_applicant', fmtName(a.name), `Moved to: Screening Sent — ${a.role}`);
   }, [applicants, mutate]);
 
   // ── 2. completeScreening ──────────────────────────────────────────────────
@@ -487,6 +490,7 @@ export function useHRPipeline() {
       { status: 'Screening Completed', previousStatus: 'Screening Sent', screeningScore, screeningCompletedAt: now, responseDueAt: undefined, followUpDueAt: undefined, notes: notesJson },
       { status: 'Screening Completed', previous_status: 'Screening Sent', screening_score: screeningScore, screening_completed_at: now, response_due_at: null, follow_up_due_at: null, notes: notesJson }
     );
+    void logAdminAction('applicant_screening_completed', 'hr_applicant', fmtName(a.name), `Score: ${screeningScore} — ${a.role}`);
   }, [applicants, mutate]);
 
   // ── 3. scheduleInterview ──────────────────────────────────────────────────
@@ -535,24 +539,29 @@ export function useHRPipeline() {
         meetLink,
       })
     );
+    void logAdminAction('applicant_interview_scheduled', 'hr_applicant', fmtName(a.name), `Interview: ${interviewDateStr} — ${a.role}`);
   }, [applicants, mutate]);
 
   // ── 4. markInterviewDone ──────────────────────────────────────────────────
   // HR marks that the interview has taken place → moves to Interview Results.
   const markInterviewDone = useCallback(async (id: string) => {
+    const a = applicants.find(x => x.id === id);
     const now = new Date().toISOString();
     await mutate(id, { hrReviewedAt: now }, { hr_reviewed_at: now });
-  }, [mutate]);
+    if (a) void logAdminAction('applicant_interview_done', 'hr_applicant', fmtName(a.name), `Interview marked complete — ${a.role}`);
+  }, [applicants, mutate]);
 
   // ── 5. shortlistApplicant ─────────────────────────────────────────────────
   const shortlistApplicant = useCallback(async (id: string, hrRecommendation: HRRecommendation, hrFeedback: string) => {
+    const a = applicants.find(x => x.id === id);
     const now = new Date().toISOString();
     await mutate(
       id,
       { status: 'Shortlisted', previousStatus: 'Interview Scheduled', hrRecommendation, hrFeedback, shortlistedAt: now, hrReviewedAt: now },
       { status: 'Shortlisted', previous_status: 'Interview Scheduled', hr_recommendation: hrRecommendation, hr_feedback: hrFeedback, shortlisted_at: now, hr_reviewed_at: now }
     );
-  }, [mutate]);
+    if (a) void logAdminAction('applicant_shortlisted', 'hr_applicant', fmtName(a.name), `${hrRecommendation} — ${a.role}`);
+  }, [applicants, mutate]);
 
   // ── 6. hireApplicant ──────────────────────────────────────────────────────
   const hireApplicant = useCallback(async (id: string) => {
@@ -565,6 +574,7 @@ export function useHRPipeline() {
       { status: 'HIRED', previous_status: 'Shortlisted', last_contacted: now },
       () => sendEmail({ templateKey: 'hired', to: a.email, name: a.name, role: a.role })
     );
+    void logAdminAction('applicant_hired', 'hr_applicant', fmtName(a.name), `Hired for: ${a.role}`);
   }, [applicants, mutate]);
 
   // ── 7. moveToTalentPool ───────────────────────────────────────────────────
@@ -579,6 +589,7 @@ export function useHRPipeline() {
       { talent_pool: true, talent_pool_moved_at: now },
       () => sendEmail({ templateKey: 'talent-pool', to: a.email, name: a.name, role: a.role, customBody: customBody ?? defaultBody })
     );
+    void logAdminAction('applicant_talent_pool', 'hr_applicant', fmtName(a.name), `Added to talent pool — ${a.role}`);
   }, [applicants, mutate]);
 
   // ── 8. rejectApplicant ────────────────────────────────────────────────────
@@ -586,6 +597,7 @@ export function useHRPipeline() {
     const a = applicants.find(x => x.id === id);
     if (!a) return;
     await sendEmail({ templateKey: 'screening-reject', to: a.email, name: a.name, role: a.role });
+    void logAdminAction('applicant_rejected', 'hr_applicant', fmtName(a.name), `Rejected for: ${a.role}`);
     await deleteApplicant(id);
   }, [applicants, deleteApplicant]);
 
@@ -603,6 +615,7 @@ export function useHRPipeline() {
       reason: resolvedReason,
       customBody: body,
     });
+    void logAdminAction('applicant_rejected', 'hr_applicant', fmtName(a.name), `Rejected for: ${a.role}`);
     await deleteApplicant(id);
   }, [applicants, deleteApplicant]);
 
@@ -615,6 +628,7 @@ export function useHRPipeline() {
       { status: a.previousStatus, previousStatus: undefined },
       { status: a.previousStatus, previous_status: null }
     );
+    void logAdminAction('applicant_status_reverted', 'hr_applicant', fmtName(a.name), `Reverted to: ${a.previousStatus} — ${a.role}`);
   }, [applicants, mutate]);
 
   // ── Update interview draft (local helper used by UI) ──────────────────────

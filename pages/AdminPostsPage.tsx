@@ -9,6 +9,7 @@ import {
   NewsPostRecord,
   setNewsPostStatus,
 } from '../lib/news';
+import { logAdminAction } from '../lib/adminLogs';
 
 let cachedAdminPosts: NewsPostRecord[] | null = null;
 
@@ -63,6 +64,7 @@ export default function AdminPostsPage() {
     try {
       setBusyId(post.id);
       await deleteNewsPost(post.id);
+      void logAdminAction('post_deleted', 'news_post', post.title);
       setPosts(current => {
         const next = current.filter(item => item.id !== post.id);
         cachedAdminPosts = next;
@@ -81,6 +83,7 @@ export default function AdminPostsPage() {
     try {
       setBusyId(post.id);
       await setNewsPostStatus(post.id, nextStatus, post.status);
+      void logAdminAction(nextStatus === 'published' ? 'post_published' : 'status_changed', 'news_post', post.title, `Status changed to: ${nextStatus}`);
       setPosts(current => {
         const next = current.map(item => (
           item.id === post.id
@@ -111,6 +114,7 @@ export default function AdminPostsPage() {
     try {
       setBusyId(post.id);
       await setNewsPostStatus(post.id, 'archived', post.status);
+      void logAdminAction('post_archived', 'news_post', post.title);
       setPosts(current => {
         const next = current.map(item => (
           item.id === post.id
@@ -141,6 +145,8 @@ export default function AdminPostsPage() {
       <AdminShell
         title="Posts"
         subtitle="Create, publish, and manage company news updates."
+        onRefresh={() => void loadPosts()}
+        refreshing={loading}
         actions={
           <button
             type="button"

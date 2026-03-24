@@ -354,6 +354,7 @@ export async function listAdminNewsPosts() {
         avatar_url
       )
     `)
+    .eq('is_deleted', false)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -501,7 +502,7 @@ export async function updateNewsPost(id: string, input: UpsertNewsPostInput, pre
 
 export async function deleteNewsPost(id: string) {
   const supabase = getSupabase();
-  const { error } = await supabase.from('news_posts').delete().eq('id', id);
+  const { error } = await supabase.from('news_posts').update({ is_deleted: true, deleted_at: new Date().toISOString() }).eq('id', id);
   if (error) throw error;
 }
 
@@ -564,6 +565,7 @@ export async function listPublishedNewsPosts(page = 1, pageSize = 6) {
       )
     `, { count: 'exact' })
     .eq('status', 'published')
+    .eq('is_deleted', false)
     .order('published_at', { ascending: false })
     .range(from, to);
 
@@ -718,7 +720,7 @@ export async function deleteComment(id: string) {
   const supabase = getSupabase();
   const { error } = await supabase
     .from('news_comments')
-    .delete()
+    .update({ is_deleted: true })
     .eq('id', id);
 
   if (error) throw error;

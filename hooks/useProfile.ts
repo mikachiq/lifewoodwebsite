@@ -11,8 +11,10 @@ let _cachedAvatarSrc: string | null = null;
 export type Profile = {
   id: string;
   username: string | null;
+  email: string | null;
   avatar_url: string | null;
   is_admin: boolean;
+  is_super_admin: boolean;
   updated_at: string | null;
 };
 
@@ -22,6 +24,7 @@ type UseProfileResult = {
   avatarSrc: string | null;
   displayName: string | null;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
 };
 
 function emailPrefix(email: string | null | undefined) {
@@ -69,8 +72,10 @@ export function useProfile(): UseProfileResult {
           .select(`
             id,
             username,
+            email,
             avatar_url,
             is_admin,
+            is_super_admin,
             updated_at
           `)
           .eq('id', user.id)
@@ -118,6 +123,7 @@ export function useProfile(): UseProfileResult {
   }, [profile?.username, user]);
 
   const isAdmin = profile?.is_admin ?? false;
+  const isSuperAdmin = profile?.is_super_admin ?? false;
 
-  return { loading, profile, avatarSrc, displayName, isAdmin };
+  return { loading, profile, avatarSrc, displayName, isAdmin, isSuperAdmin };
 }

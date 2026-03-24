@@ -101,12 +101,12 @@ router.get('/', async (_req, res) => {
 
         const { error: deleteErr } = await supabase
           .from('hr_applicants')
-          .delete()
+          .update({ is_deleted: true, deleted_at: new Date().toISOString() })
           .eq('id', applicant.id);
 
         if (deleteErr) {
           console.error(
-            `[cron/sla] Failed to delete inactive applicant ${applicant.id}:`,
+            `[cron/sla] Failed to soft-delete inactive applicant ${applicant.id}:`,
             deleteErr
           );
         } else {
