@@ -62,6 +62,9 @@ function capitalizeFirst(value: string | null | undefined): string | null | unde
   if (!value) return value;
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
+function capitalizeName(name: string): string {
+  return name.replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
 function hasLongText(value: string | null | undefined) {
   return (value || '').trim().length > 90;
 }
@@ -864,7 +867,7 @@ export default function AdminDashboardPage() {
                                 {initials}
                               </div>
                               <div className="min-w-0">
-                                <p className="font-bold text-sm text-[#1a2e1a] truncate max-w-[180px]">{name}</p>
+                                <p className="font-bold text-sm text-[#1a2e1a] truncate max-w-[180px]">{capitalizeName(name)}</p>
                                 <p className="text-[11px] text-[#8a9a8a] truncate max-w-[180px]">{inquiry.email}</p>
                               </div>
                             </div>
@@ -1016,7 +1019,7 @@ export default function AdminDashboardPage() {
                   Email Composer
                 </span>
                 <div>
-                  <h3 className="text-[1.1rem] font-black leading-tight text-[#193728]">Respond to {respondTarget.name || respondTarget.email}</h3>
+                  <h3 className="text-[1.1rem] font-black leading-tight text-[#193728]">Respond to {capitalizeName(respondTarget.name || respondTarget.email)}</h3>
                   <p className="mt-1.5 text-[13px] font-medium text-[#6d7c70]">
                     Sending to <span className="font-bold text-[#29523d]">{respondTarget.email}</span>
                   </p>
@@ -1082,7 +1085,7 @@ export default function AdminDashboardPage() {
                     const { error } = await supabase.functions.invoke('send-email', {
                       body: {
                         to: respondTarget.email,
-                        name: respondTarget.name || respondTarget.email,
+                        name: capitalizeName(respondTarget.name || respondTarget.email),
                         subject: `Re: Your Lifewood ${respondTarget.context === 'career' ? 'Application' : respondTarget.context === 'project' ? 'Project Request' : 'Inquiry'}`,
                         body: emailBody,
                         badge,
@@ -1135,7 +1138,7 @@ export default function AdminDashboardPage() {
               <div className="flex items-start justify-between gap-4 border-b border-[#ece3d4] bg-[linear-gradient(135deg,rgba(247,242,232,0.92),rgba(255,255,255,0.98))] px-6 py-4">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#8a9a8a]">Applicant Details</p>
-                  <h3 className="mt-2 text-[1.1rem] font-black leading-tight text-[#193728]">{detailsTarget.name || detailsTarget.email}</h3>
+                  <h3 className="mt-2 text-[1.1rem] font-black leading-tight text-[#193728]">{capitalizeName(detailsTarget.name || detailsTarget.email)}</h3>
                   <p className="mt-1 text-[13px] font-medium text-[#6d7c70]">{formatPositionLabel(detailsTarget.position)}</p>
                 </div>
                 <button
@@ -1199,7 +1202,7 @@ export default function AdminDashboardPage() {
               <div className="flex items-start justify-between gap-4 border-b border-[#ece3d4] bg-[linear-gradient(135deg,rgba(247,242,232,0.92),rgba(255,255,255,0.98))] px-6 py-4">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#8a9a8a]">Project Details</p>
-                  <h3 className="mt-2 text-[1.1rem] font-black leading-tight text-[#193728]">{projectDetailsTarget.name || projectDetailsTarget.email}</h3>
+                  <h3 className="mt-2 text-[1.1rem] font-black leading-tight text-[#193728]">{capitalizeName(projectDetailsTarget.name || projectDetailsTarget.email)}</h3>
                   <p className="mt-1 text-[13px] font-medium text-[#6d7c70]">{projectDetailsTarget.organization || projectDetailsTarget.service || '—'}</p>
                 </div>
                 <button

@@ -138,7 +138,7 @@ function addDays(n: number): string {
   return new Date(Date.now() + n * 86400000).toISOString();
 }
 
-// POST to /api/email/workflow
+// POST to Supabase hr-email edge function
 async function sendEmail(payload: {
   templateKey: string;
   to: string;
@@ -149,15 +149,9 @@ async function sendEmail(payload: {
   meetLink?: string;
   reason?: string;
 }): Promise<void> {
-  const res = await fetch('/api/email/workflow', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Email failed: ${text}`);
-  }
+  const supabase = getSupabase();
+  const { error } = await supabase.functions.invoke('hr-email', { body: payload });
+  if (error) throw new Error(`Email failed: ${error.message}`);
 }
 
 // ── Mock screening data ────────────────────────────────────────────────────────

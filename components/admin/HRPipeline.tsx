@@ -918,16 +918,16 @@ export default function HRPipeline() {
             renderRow={a => (
               <>
                 <NameCell applicant={a} />
-                <td className="px-4 py-3 w-[90px]">
+                <td className="px-4 py-3">
                   <GhostBtn onClick={() => openApplicantDetailsModal(a.id)}>View</GhostBtn>
                 </td>
                 <td className="px-4 py-3">
                   <p className="text-xs text-[#5a7a6a] leading-relaxed whitespace-normal break-words">{a.hrFeedback || '—'}</p>
                 </td>
-                <td className="px-4 py-3 w-[180px]">
+                <td className="px-4 py-3">
                   <RecommendationBadge recommendation={a.hrRecommendation} />
                 </td>
-                <td className="px-4 py-3 w-[120px]">
+                <td className="px-4 py-3">
                   <GhostBtn onClick={() => openTalentPoolModal(a.id, true)} disabled={working === a.id}>
                     Re-engage
                   </GhostBtn>

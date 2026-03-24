@@ -27,7 +27,7 @@ function buildHtml(name: string, bodyText: string, badge: string, meta: { label:
   const metaRows = meta.map(({ label, value, color }) => `
     <tr style="border-top:1px solid #d7e4dc;">
       <td style="padding:6px 12px;font-size:12px;color:#537161;font-weight:500;">${label}</td>
-      <td style="padding:6px 12px;font-size:12px;font-weight:700;text-align:right;color:${color || '#1a2e1a'};">${value}</td>
+      <td style="padding:6px 12px;font-size:12px;font-weight:700;text-align:left;color:${color || '#1a2e1a'};">${value}</td>
     </tr>`).join('');
 
   return `<!DOCTYPE html>
