@@ -297,6 +297,7 @@ export default function AdminDashboardPage() {
   const [notifOpen, setNotifOpen] = useState(false);
   const { confirm, modal: confirmModal } = useConfirm();
   const notifRef = React.useRef<HTMLDivElement | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const handleLogout = async () => {
     const supabase = getSupabase();
@@ -385,6 +386,8 @@ export default function AdminDashboardPage() {
     }
   }, [notifOpen]);
 
+  useEffect(() => { setCurrentPage(1); }, [activeSection, overviewFilter]);
+
   const handleStatusChange = async (id: string, newStatus: Status) => {
     const inquiry = inquiries.find(item => item.id === id);
     if (!inquiry || inquiry.source === 'hr_applicants') return;
@@ -440,12 +443,15 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const visibleInquiries = activeSection === 'overview'
-    ? (overviewFilter === 'all' ? inquiries : inquiries.filter(inq => inq.context === overviewFilter)).slice(0, 10)
+  const PAGE_SIZE = 10;
+  const filteredInquiries = activeSection === 'overview'
+    ? (overviewFilter === 'all' ? inquiries : inquiries.filter(inq => inq.context === overviewFilter))
     : inquiries.filter(inq =>
         activeSection === 'contacts' ? inq.context === 'contact'
         : inq.context === 'project'
       );
+  const totalPages = Math.max(1, Math.ceil(filteredInquiries.length / PAGE_SIZE));
+  const visibleInquiries = filteredInquiries.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const sectionTitle: Record<NavSection, string> = {
     overview: 'Dashboard',
     contacts: 'Contact Messages',
@@ -780,7 +786,7 @@ export default function AdminDashboardPage() {
                   </button>
                 ) : null}
                 <span className="text-xs font-bold text-[#8a9a8a] bg-[#f2ece0] px-3 py-1 rounded-full">
-                  {loading ? '…' : visibleInquiries.length} {activeSection === 'overview' ? 'recent' : 'total'}
+                  {loading ? '…' : filteredInquiries.length} {activeSection === 'overview' ? 'recent' : 'total'}
                 </span>
               </div>
             </div>
@@ -802,10 +808,21 @@ export default function AdminDashboardPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full table-fixed">
+                  <colgroup>
+                    <col style={{ width: '44px' }} />
+                    <col style={{ width: activeSection === 'overview' ? '32%' : '35%' }} />
+                    <col style={{ width: '130px' }} />
+                    {activeSection === 'contacts' && <col style={{ width: '28%' }} />}
+                    {activeSection === 'projects' && <col style={{ width: '20%' }} />}
+                    {activeSection === 'projects' && <col style={{ width: '130px' }} />}
+                    <col style={{ width: '130px' }} />
+                    <col style={{ width: '160px' }} />
+                    <col style={{ width: '150px' }} />
+                  </colgroup>
                   <thead>
                     <tr className="border-b border-[#f0ebe2]">
-                      <th className="px-4 py-3 w-10" />
+                      <th className="px-4 py-3" />
                       <th className="text-left px-6 py-3 text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest">
                         Inquirer
                       </th>
@@ -1002,6 +1019,42 @@ export default function AdminDashboardPage() {
                 </table>
               </div>
             )}
+            {!loading && totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-3 border-t border-[#f0ebe2] bg-[#faf8f4]">
+                <span className="text-xs text-[#8a9a8a] font-medium">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 text-xs font-bold rounded-lg border border-[#e8e3da] bg-white text-[#4a6a5a] hover:bg-[#f2ece0] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ← Prev
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-8 h-8 text-xs font-bold rounded-lg border transition-colors ${
+                        page === currentPage
+                          ? 'bg-[#1a3a2a] text-white border-[#1a3a2a]'
+                          : 'border-[#e8e3da] bg-white text-[#4a6a5a] hover:bg-[#f2ece0]'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 text-xs font-bold rounded-lg border border-[#e8e3da] bg-white text-[#4a6a5a] hover:bg-[#f2ece0] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>)}
 
         </div>
@@ -1079,7 +1132,6 @@ export default function AdminDashboardPage() {
                       ] : respondTarget.context === 'project' ? [
                         { label: 'Service', value: respondTarget.service || 'N/A' },
                         { label: 'Date', value: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) },
-                        { label: 'Status', value: 'In Progress', color: '#1a7a4a' },
                       ] : [];
 
                     const { error } = await supabase.functions.invoke('send-email', {
@@ -1183,14 +1235,6 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end border-t border-[#ece3d4] bg-[#fffdfa] px-6 py-4">
-                <button
-                  onClick={() => setDetailsTarget(null)}
-                  className="px-4 py-2 text-sm font-bold text-[#6a8a7a] transition-colors hover:text-[#1a2e1a]"
-                >
-                  Close
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -1244,14 +1288,6 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end border-t border-[#ece3d4] bg-[#fffdfa] px-6 py-4">
-                <button
-                  onClick={() => setProjectDetailsTarget(null)}
-                  className="px-4 py-2 text-sm font-bold text-[#6a8a7a] transition-colors hover:text-[#1a2e1a]"
-                >
-                  Close
-                </button>
-              </div>
             </div>
           </div>
         </div>

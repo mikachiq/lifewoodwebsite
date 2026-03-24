@@ -217,6 +217,8 @@ function ApplicantDetailsGrid({ applicant }: { applicant: HRApplicant }) {
 
 // ── ApplicantTable ────────────────────────────────────────────────────────────
 
+const TABLE_PAGE_SIZE = 10;
+
 function ApplicantTable({
   headers,
   rows,
@@ -228,6 +230,12 @@ function ApplicantTable({
   renderRow: (a: HRApplicant) => React.ReactNode;
   emptyMessage: string;
 }) {
+  const [page, setPage] = React.useState(1);
+  React.useEffect(() => { setPage(1); }, [rows.length]);
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / TABLE_PAGE_SIZE));
+  const pageRows = rows.slice((page - 1) * TABLE_PAGE_SIZE, page * TABLE_PAGE_SIZE);
+
   return (
     <div className="bg-white rounded-2xl border border-[#e8e3da] shadow-sm overflow-hidden">
       {rows.length === 0 ? (
@@ -235,30 +243,68 @@ function ApplicantTable({
           <p className="text-sm text-[#8a9a8a] font-medium">{emptyMessage}</p>
         </div>
       ) : (
-        <table className="w-full min-w-max">
-          <thead>
-            <tr className="border-b border-[#f0ebe2] bg-[#faf8f4]">
-              {headers.map(h => (
-                <th
-                  key={h}
-                  className="px-4 py-3 text-left text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest whitespace-nowrap"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(a => (
-              <tr
-                key={a.id}
-                className="border-b border-[#f7f4ef] last:border-0 hover:bg-[#faf8f4] transition-colors"
-              >
-                {renderRow(a)}
+        <>
+          <table className="w-full min-w-max">
+            <thead>
+              <tr className="border-b border-[#f0ebe2] bg-[#faf8f4]">
+                {headers.map(h => (
+                  <th
+                    key={h}
+                    className="px-4 py-3 text-left text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest whitespace-nowrap"
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {pageRows.map(a => (
+                <tr
+                  key={a.id}
+                  className="border-b border-[#f7f4ef] last:border-0 hover:bg-[#faf8f4] transition-colors"
+                >
+                  {renderRow(a)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-3 border-t border-[#f0ebe2] bg-[#faf8f4]">
+              <span className="text-xs text-[#8a9a8a] font-medium">
+                Page {page} of {totalPages}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1.5 text-xs font-bold rounded-lg border border-[#e8e3da] bg-white text-[#4a6a5a] hover:bg-[#f2ece0] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Prev
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`w-8 h-8 text-xs font-bold rounded-lg border transition-colors ${
+                      p === page
+                        ? 'bg-[#1a3a2a] text-white border-[#1a3a2a]'
+                        : 'border-[#e8e3da] bg-white text-[#4a6a5a] hover:bg-[#f2ece0]'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-3 py-1.5 text-xs font-bold rounded-lg border border-[#e8e3da] bg-white text-[#4a6a5a] hover:bg-[#f2ece0] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -1173,9 +1219,6 @@ export default function HRPipeline() {
               </div>
             </div>
 
-            <div className="flex justify-end mt-4">
-              <GhostBtn onClick={closeModal}>Close</GhostBtn>
-            </div>
           </Modal>
         );
       })()}
@@ -1297,9 +1340,6 @@ export default function HRPipeline() {
                 )}
               </div>
 
-              <div className="flex justify-end pt-1">
-                <GhostBtn onClick={closeModal}>Close</GhostBtn>
-              </div>
             </div>
           </Modal>
         );

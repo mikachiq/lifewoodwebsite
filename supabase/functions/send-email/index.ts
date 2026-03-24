@@ -15,12 +15,12 @@ function buildHtml(name: string, bodyText: string, badge: string, meta: { label:
     .split('\n')
     .map(line => {
       if (line.trim() === '') {
-        return `<div style="height:10px;"></div>`;
+        return `<div style="height:18px;"></div>`;
       }
       if (line.trim().startsWith('- ')) {
-        return `<li style="margin:0 0 6px;color:#2a4a3a;font-size:13px;line-height:1.6;">${line.trim().slice(2)}</li>`;
+        return `<li style="margin:0 0 8px;color:#2a4a3a;font-size:13px;line-height:1.7;">${line.trim().slice(2)}</li>`;
       }
-      return `<p style="margin:0 0 12px;color:#2a4a3a;font-size:13px;line-height:1.6;">${line}</p>`;
+      return `<p style="margin:0 0 14px;color:#2a4a3a;font-size:13px;line-height:1.7;">${line}</p>`;
     })
     .join('');
 

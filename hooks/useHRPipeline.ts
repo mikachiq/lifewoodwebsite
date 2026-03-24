@@ -138,7 +138,99 @@ function addDays(n: number): string {
   return new Date(Date.now() + n * 86400000).toISOString();
 }
 
-// POST to Supabase hr-email edge function
+const ACRONYMS = new Set(['ai', 'hr', 'it', 'qa', 'ui', 'ux', 'nlp', 'ml']);
+
+function fmtRole(role: string): string {
+  return role.split(/[-_\s]+/).filter(Boolean)
+    .map(p => ACRONYMS.has(p.toLowerCase()) ? p.toUpperCase() : p.charAt(0).toUpperCase() + p.slice(1))
+    .join(' ');
+}
+
+function fmtName(name: string): string {
+  return name.replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
+function todayStr(): string {
+  return new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+function buildHrEmail(opts: {
+  templateKey: string;
+  name: string;
+  role: string;
+  customBody?: string;
+  interviewDate?: string;
+  meetLink?: string;
+  reason?: string;
+}): { badge: string; subject: string; body: string; meta: { label: string; value: string; color?: string }[] } {
+  const role = fmtRole(opts.role);
+  const reason = opts.reason || 'We selected another candidate whose profile is more aligned with the current role requirements.';
+
+  switch (opts.templateKey) {
+    case 'screening-link':
+      return {
+        badge: 'Pre-Screening Assessment',
+        subject: `Next Step: Pre-Assessment for ${role} at Lifewood`,
+        body: `Thank you for reaching out to Lifewood regarding the ${role} position.\n\nWe have reviewed your application and would like to invite you to complete the AI screening assessment as the next step in the process.\n\nPlease complete the assessment at your earliest convenience using the link below. It should take approximately 15–20 minutes.\n\nhttps://lifewoodph-ai-interviewer.vercel.app/\n\nPlease complete this within 2 business days to keep your application active.`,
+        meta: [{ label: 'Position', value: role }, { label: 'Date Sent', value: todayStr() }],
+      };
+    case 'screening-reject':
+      return {
+        badge: 'Application Update',
+        subject: `Your Application for ${role} at Lifewood`,
+        body: `Thank you for reaching out to Lifewood regarding the ${role} position and for the time you invested in your application.\n\nAfter careful consideration, we regret to inform you that we will not be moving forward with your application at this time.\n\n${reason}\n\nWe appreciate the effort you put into your application and wish you all the best in your future endeavors.`,
+        meta: [{ label: 'Position', value: role }, { label: 'Date', value: todayStr() }],
+      };
+    case 'screening-follow-up':
+      return {
+        badge: 'Screening Reminder',
+        subject: `Reminder: Complete Your AI Screening — ${role} at Lifewood`,
+        body: `This is a friendly reminder that you have a pending AI screening assessment for the ${role} position at Lifewood.\n\nPlease complete the assessment as soon as possible using the link below.\n\nhttps://lifewoodph-ai-interviewer.vercel.app/\n\nIf we do not hear back, your application may be marked as inactive. Please reach out if you have any questions.`,
+        meta: [{ label: 'Position', value: role }, { label: 'Date', value: todayStr() }],
+      };
+    case 'interview-schedule': {
+      const body = opts.customBody ||
+        `Congratulations on passing the initial screening! We would like to set an interview with you. Please review the date and details below.\n\nPlease note that if you do not join within 10 minutes of the scheduled time, we will consider your application as inactive. If you need to reschedule, please contact us in advance.`;
+      return {
+        badge: 'Interview Invitation',
+        subject: `Interview Scheduled — ${role} at Lifewood`,
+        body,
+        meta: [
+          { label: 'Position', value: role },
+          { label: 'Date & Time', value: opts.interviewDate || 'To be confirmed' },
+          { label: 'Meeting Link', value: opts.meetLink || '—' },
+        ],
+      };
+    }
+    case 'talent-pool': {
+      const body = opts.customBody ||
+        `Thank you for your interest in Lifewood. While we don't have an immediate opening that matches your profile right now, we'd like to keep you in our talent pool for future opportunities.`;
+      return {
+        badge: 'Talent Pool',
+        subject: `Update on Your Lifewood Application — ${role}`,
+        body,
+        meta: [{ label: 'Position', value: role }, { label: 'Date', value: todayStr() }],
+      };
+    }
+    case 'inactive':
+      return {
+        badge: 'Application Status',
+        subject: `Your Lifewood Application Has Been Marked Inactive — ${role}`,
+        body: `We noticed we haven't heard back from you regarding your application for the ${role} position at Lifewood.\n\nYour application has been marked as inactive due to no response within the allotted timeframe.\n\nIf you remain interested in opportunities at Lifewood, we welcome you to reapply in the future. Thank you for your interest, and we wish you the best.`,
+        meta: [{ label: 'Position', value: role }, { label: 'Date', value: todayStr() }],
+      };
+    case 'hired':
+      return {
+        badge: 'Offer Extended',
+        subject: `Congratulations! You've Been Hired — ${role} at Lifewood`,
+        body: `We are absolutely thrilled to extend this offer to you! After a thorough evaluation, you have been selected for the ${role} position at Lifewood.\n\nWe have discussed the details of your role and are confident that you will be a tremendous addition to our team.\n\nOur HR team will be reaching out shortly with your onboarding details and next steps.\n\nWelcome to the Lifewood family! We are excited to have you on board.`,
+        meta: [{ label: 'Position', value: role }, { label: 'Date', value: todayStr() }],
+      };
+    default:
+      return { badge: 'HR Update', subject: `Update from Lifewood HR`, body: opts.customBody || '', meta: [] };
+  }
+}
+
 async function sendEmail(payload: {
   templateKey: string;
   to: string;
@@ -150,7 +242,10 @@ async function sendEmail(payload: {
   reason?: string;
 }): Promise<void> {
   const supabase = getSupabase();
-  const { error } = await supabase.functions.invoke('hr-email', { body: payload });
+  const { badge, subject, body, meta } = buildHrEmail(payload);
+  const { error } = await supabase.functions.invoke('send-email', {
+    body: { to: payload.to, name: fmtName(payload.name), subject, body, badge, meta },
+  });
   if (error) throw new Error(`Email failed: ${error.message}`);
 }
 
