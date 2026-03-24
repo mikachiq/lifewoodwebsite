@@ -350,7 +350,7 @@ export default function NewsPostExperience({ postId, embedded = false }: { postI
                 </div>
 
             <div className={`instagram-post-panel news-post-panel ${embedded ? 'news-post-panel-embedded' : ''}`}>
-              <div className="px-4 py-3 border-b border-[#efefef] max-h-[45%] overflow-y-auto">
+              <div className="px-4 pt-6 pb-3 border-b border-[#efefef] max-h-[45%] overflow-y-auto">
                 <div className="flex gap-2.5">
                   <Avatar name={authorName} src={post.author?.avatar_src || null} size={8} />
                   <div className="flex-1 min-w-0">

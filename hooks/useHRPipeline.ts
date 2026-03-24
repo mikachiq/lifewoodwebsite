@@ -231,6 +231,18 @@ function buildHrEmail(opts: {
   }
 }
 
+function notifMessage(templateKey: string, role: string): string {
+  switch (templateKey) {
+    case 'screening-link':    return `Your application for the ${role} position has moved forward. Please check your email for the AI screening link.`;
+    case 'screening-reject':  return `An update regarding your application for the ${role} position has been sent to your email.`;
+    case 'interview-schedule':return `Your interview for the ${role} position has been scheduled. Please check your email for details.`;
+    case 'talent-pool':       return `You have been added to the Lifewood talent pool for the ${role} role. Check your email for details.`;
+    case 'inactive':          return `Your application for the ${role} position has been marked inactive. Check your email for details.`;
+    case 'hired':             return `Congratulations! You have been selected for the ${role} position at Lifewood. Check your email for your offer details.`;
+    default:                  return `You have a new update from Lifewood HR regarding your application. Check your email for details.`;
+  }
+}
+
 async function sendEmail(payload: {
   templateKey: string;
   to: string;
@@ -247,6 +259,13 @@ async function sendEmail(payload: {
     body: { to: payload.to, name: fmtName(payload.name), subject, body, badge, meta },
   });
   if (error) throw new Error(`Email failed: ${error.message}`);
+
+  const role = fmtRole(payload.role);
+  await supabase.from('notifications').insert({
+    user_email: payload.to,
+    message: notifMessage(payload.templateKey, role),
+    read: false,
+  });
 }
 
 // ── Mock screening data ────────────────────────────────────────────────────────
