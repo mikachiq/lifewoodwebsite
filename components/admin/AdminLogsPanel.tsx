@@ -214,9 +214,9 @@ export default function AdminLogsPanel({ isSuperAdmin, refreshKey }: { isSuperAd
           <button
             disabled={page === 1}
             onClick={() => setPage(p => p - 1)}
-            className="px-3 py-1.5 text-xs font-bold rounded-lg border border-[#e0d9ce] disabled:opacity-40 hover:bg-[#f2ece0] transition-colors"
+            className="px-4 py-1.5 text-xs font-bold rounded-lg border border-[#1a3a2a] text-[#1a3a2a] bg-white disabled:opacity-30 hover:bg-[#1a3a2a] hover:text-white transition-colors"
           >
-            Prev
+            ← Prev
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1)
             .filter(n => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
@@ -235,7 +235,7 @@ export default function AdminLogsPanel({ isSuperAdmin, refreshKey }: { isSuperAd
                   className={`w-8 h-8 text-xs font-bold rounded-lg border transition-colors ${
                     page === item
                       ? 'bg-[#1a3a2a] text-white border-[#1a3a2a]'
-                      : 'border-[#e0d9ce] hover:bg-[#f2ece0]'
+                      : 'border-[#c0c8c0] text-[#1a3a2a] bg-white hover:bg-[#f2ece0]'
                   }`}
                 >
                   {item}
@@ -245,9 +245,9 @@ export default function AdminLogsPanel({ isSuperAdmin, refreshKey }: { isSuperAd
           <button
             disabled={page === totalPages}
             onClick={() => setPage(p => p + 1)}
-            className="px-3 py-1.5 text-xs font-bold rounded-lg border border-[#e0d9ce] disabled:opacity-40 hover:bg-[#f2ece0] transition-colors"
+            className="px-4 py-1.5 text-xs font-bold rounded-lg border border-[#1a3a2a] text-[#1a3a2a] bg-white disabled:opacity-30 hover:bg-[#1a3a2a] hover:text-white transition-colors"
           >
-            Next
+            Next →
           </button>
         </div>
       </div>

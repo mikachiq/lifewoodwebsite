@@ -22,45 +22,79 @@ const Hero: React.FC<HeroProps> = ({ translations, onJoinTeam, onNavigate, onLog
 
   const cards = [
     {
-      icon: "🌍",
+      icon: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+      ),
       title: translations.cardGlobalTitle,
       text: translations.cardGlobalText,
       color: "from-castleton-green to-green-2"
     },
     {
-      icon: "⚡",
+      icon: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+      ),
       title: translations.cardSpeedTitle,
       text: translations.cardSpeedText,
       color: "from-saffron to-earth-yellow",
       textColor: "text-dark-serpent dark:text-white"
     },
     {
-      icon: "🎯",
+      icon: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+        </svg>
+      ),
       title: translations.cardPrecisionTitle,
       text: translations.cardPrecisionText,
       color: "from-green-2 to-green-3"
     },
     {
-      icon: "🛡️",
+      icon: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <polyline points="9 12 11 14 15 10"/>
+        </svg>
+      ),
       title: translations.cardSecurityTitle,
       text: translations.cardSecurityText,
       color: "from-dark-serpent to-castleton-green"
     },
     {
-      icon: "🗣️",
+      icon: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      ),
       title: translations.cardDialectTitle,
       text: translations.cardDialectText,
       color: "from-earth-yellow to-saffron",
       textColor: "text-dark-serpent dark:text-white"
     },
     {
-      icon: "🤝",
+      icon: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      ),
       title: translations.cardEsgTitle,
       text: translations.cardEsgText,
       color: "from-green-3 to-green-2"
     },
     {
-      icon: "⏱️",
+      icon: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+      ),
       title: translations.cardAlwaysOnTitle,
       text: translations.cardAlwaysOnText,
       color: "from-green-1 to-dark-serpent"

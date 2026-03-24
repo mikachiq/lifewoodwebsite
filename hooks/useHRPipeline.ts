@@ -142,7 +142,9 @@ function addDays(n: number): string {
 const ACRONYMS = new Set(['ai', 'hr', 'it', 'qa', 'ui', 'ux', 'nlp', 'ml']);
 
 function fmtRole(role: string): string {
-  return role.split(/[-_\s]+/).filter(Boolean)
+  // Strip trailing 6-char random suffix added during position creation (e.g. "ai-data-annotator-btfzkj")
+  const cleaned = role.replace(/-[a-z0-9]{6}$/, '');
+  return cleaned.split(/[-_\s]+/).filter(Boolean)
     .map(p => ACRONYMS.has(p.toLowerCase()) ? p.toUpperCase() : p.charAt(0).toUpperCase() + p.slice(1))
     .join(' ');
 }
@@ -459,7 +461,7 @@ export function useHRPipeline() {
       { status: 'Screening Sent', previous_status: a.status, screening_sent_at: now, last_contacted: now, response_due_at: responseDueAt },
       () => sendEmail({ templateKey: 'screening-link', to: a.email, name: a.name, role: a.role })
     );
-    void logAdminAction('applicant_stage_changed', 'hr_applicant', fmtName(a.name), `Moved to: Screening Sent — ${a.role}`);
+    void logAdminAction('applicant_stage_changed', 'hr_applicant', fmtName(a.name), `Moved to: Screening Sent — ${fmtRole(a.role)}`);
   }, [applicants, mutate]);
 
   // ── 2. completeScreening ──────────────────────────────────────────────────
@@ -490,7 +492,7 @@ export function useHRPipeline() {
       { status: 'Screening Completed', previousStatus: 'Screening Sent', screeningScore, screeningCompletedAt: now, responseDueAt: undefined, followUpDueAt: undefined, notes: notesJson },
       { status: 'Screening Completed', previous_status: 'Screening Sent', screening_score: screeningScore, screening_completed_at: now, response_due_at: null, follow_up_due_at: null, notes: notesJson }
     );
-    void logAdminAction('applicant_screening_completed', 'hr_applicant', fmtName(a.name), `Score: ${screeningScore} — ${a.role}`);
+    void logAdminAction('applicant_screening_completed', 'hr_applicant', fmtName(a.name), `Score: ${screeningScore} — ${fmtRole(a.role)}`);
   }, [applicants, mutate]);
 
   // ── 3. scheduleInterview ──────────────────────────────────────────────────
@@ -539,7 +541,7 @@ export function useHRPipeline() {
         meetLink,
       })
     );
-    void logAdminAction('applicant_interview_scheduled', 'hr_applicant', fmtName(a.name), `Interview: ${interviewDateStr} — ${a.role}`);
+    void logAdminAction('applicant_interview_scheduled', 'hr_applicant', fmtName(a.name), `Interview: ${interviewDateStr} — ${fmtRole(a.role)}`);
   }, [applicants, mutate]);
 
   // ── 4. markInterviewDone ──────────────────────────────────────────────────
@@ -548,7 +550,7 @@ export function useHRPipeline() {
     const a = applicants.find(x => x.id === id);
     const now = new Date().toISOString();
     await mutate(id, { hrReviewedAt: now }, { hr_reviewed_at: now });
-    if (a) void logAdminAction('applicant_interview_done', 'hr_applicant', fmtName(a.name), `Interview marked complete — ${a.role}`);
+    if (a) void logAdminAction('applicant_interview_done', 'hr_applicant', fmtName(a.name), `Interview marked complete — ${fmtRole(a.role)}`);
   }, [applicants, mutate]);
 
   // ── 5. shortlistApplicant ─────────────────────────────────────────────────
@@ -560,7 +562,7 @@ export function useHRPipeline() {
       { status: 'Shortlisted', previousStatus: 'Interview Scheduled', hrRecommendation, hrFeedback, shortlistedAt: now, hrReviewedAt: now },
       { status: 'Shortlisted', previous_status: 'Interview Scheduled', hr_recommendation: hrRecommendation, hr_feedback: hrFeedback, shortlisted_at: now, hr_reviewed_at: now }
     );
-    if (a) void logAdminAction('applicant_shortlisted', 'hr_applicant', fmtName(a.name), `${hrRecommendation} — ${a.role}`);
+    if (a) void logAdminAction('applicant_shortlisted', 'hr_applicant', fmtName(a.name), `${hrRecommendation} — ${fmtRole(a.role)}`);
   }, [applicants, mutate]);
 
   // ── 6. hireApplicant ──────────────────────────────────────────────────────
@@ -574,7 +576,7 @@ export function useHRPipeline() {
       { status: 'HIRED', previous_status: 'Shortlisted', last_contacted: now },
       () => sendEmail({ templateKey: 'hired', to: a.email, name: a.name, role: a.role })
     );
-    void logAdminAction('applicant_hired', 'hr_applicant', fmtName(a.name), `Hired for: ${a.role}`);
+    void logAdminAction('applicant_hired', 'hr_applicant', fmtName(a.name), `Hired for: ${fmtRole(a.role)}`);
   }, [applicants, mutate]);
 
   // ── 7. moveToTalentPool ───────────────────────────────────────────────────
@@ -589,7 +591,7 @@ export function useHRPipeline() {
       { talent_pool: true, talent_pool_moved_at: now },
       () => sendEmail({ templateKey: 'talent-pool', to: a.email, name: a.name, role: a.role, customBody: customBody ?? defaultBody })
     );
-    void logAdminAction('applicant_talent_pool', 'hr_applicant', fmtName(a.name), `Added to talent pool — ${a.role}`);
+    void logAdminAction('applicant_talent_pool', 'hr_applicant', fmtName(a.name), `Added to talent pool — ${fmtRole(a.role)}`);
   }, [applicants, mutate]);
 
   // ── 8. rejectApplicant ────────────────────────────────────────────────────
@@ -597,7 +599,7 @@ export function useHRPipeline() {
     const a = applicants.find(x => x.id === id);
     if (!a) return;
     await sendEmail({ templateKey: 'screening-reject', to: a.email, name: a.name, role: a.role });
-    void logAdminAction('applicant_rejected', 'hr_applicant', fmtName(a.name), `Rejected for: ${a.role}`);
+    void logAdminAction('applicant_rejected', 'hr_applicant', fmtName(a.name), `Rejected for: ${fmtRole(a.role)}`);
     await deleteApplicant(id);
   }, [applicants, deleteApplicant]);
 
@@ -615,7 +617,7 @@ export function useHRPipeline() {
       reason: resolvedReason,
       customBody: body,
     });
-    void logAdminAction('applicant_rejected', 'hr_applicant', fmtName(a.name), `Rejected for: ${a.role}`);
+    void logAdminAction('applicant_rejected', 'hr_applicant', fmtName(a.name), `Rejected for: ${fmtRole(a.role)}`);
     await deleteApplicant(id);
   }, [applicants, deleteApplicant]);
 
@@ -628,7 +630,7 @@ export function useHRPipeline() {
       { status: a.previousStatus, previousStatus: undefined },
       { status: a.previousStatus, previous_status: null }
     );
-    void logAdminAction('applicant_status_reverted', 'hr_applicant', fmtName(a.name), `Reverted to: ${a.previousStatus} — ${a.role}`);
+    void logAdminAction('applicant_status_reverted', 'hr_applicant', fmtName(a.name), `Reverted to: ${a.previousStatus} — ${fmtRole(a.role)}`);
   }, [applicants, mutate]);
 
   // ── Update interview draft (local helper used by UI) ──────────────────────

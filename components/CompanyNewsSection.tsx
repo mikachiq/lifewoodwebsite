@@ -95,10 +95,7 @@ export default function CompanyNewsSection() {
                   <p className="text-[11px] font-black uppercase tracking-[0.24em] text-green-2 dark:text-green-4 mb-4">
                     {formatDate(post.published_at || post.created_at)}
                   </p>
-                  <h3 className="text-2xl font-black text-dark-serpent dark:text-white mb-4 line-clamp-2 min-h-[4.25rem]">{post.title}</h3>
-                  <p className="text-green-2 dark:text-green-4 leading-relaxed line-clamp-3 min-h-[5.5rem] max-w-[28ch] mx-auto">
-                    {post.excerpt || 'Read the latest update from Lifewood.'}
-                  </p>
+                  <h3 className="text-2xl font-black text-dark-serpent dark:text-white line-clamp-3">{post.title}</h3>
                 </div>
               </button>
             ))}

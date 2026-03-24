@@ -88,7 +88,7 @@ export async function createHRPosition(input: {
 
 export async function deleteHRPosition(id: string) {
   const supabase = getSupabase();
-  const { error } = await supabase.from('hr_positions').update({ is_deleted: true, deleted_at: new Date().toISOString() }).eq('id', id);
+  const { error } = await supabase.from('hr_positions').update({ is_active: false, is_deleted: true, deleted_at: new Date().toISOString() }).eq('id', id);
   if (error) throw error;
 }
 
