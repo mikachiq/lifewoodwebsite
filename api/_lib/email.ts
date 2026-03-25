@@ -1,4 +1,7 @@
 import nodemailer from 'nodemailer';
+import type Mail from 'nodemailer/lib/mailer';
+
+let transporter: Mail | null = null;
 
 type TemplateKey =
   | 'screening-link'
@@ -214,10 +217,12 @@ export async function sendWorkflowEmail(opts: {
 
   const vars = { name: cleanName, role: cleanRole, reason, body: cleanBody, interviewDate, meetLink };
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
-  });
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+    });
+  }
 
   const html = buildEmailHtml(templateKey, vars);
   const text = buildPlainText(html);

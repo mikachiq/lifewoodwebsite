@@ -381,11 +381,6 @@ export function useHRPipeline() {
     return () => { void supabase.removeChannel(channel); };
   }, [fetchAll]);
 
-  // 10-second polling fallback
-  useEffect(() => {
-    const t = setInterval(() => { void fetchAll(); }, 10000);
-    return () => clearInterval(t);
-  }, [fetchAll]);
 
   // ── Optimistic update helper ────────────────────────────────────────────────
   // Updates local state → patches DB → sends email (if emailFn provided)

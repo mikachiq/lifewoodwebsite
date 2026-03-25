@@ -3,6 +3,7 @@ import { supabase } from '../_lib/supabase.js';
 
 export default async function handler(_req: IncomingMessage, res: ServerResponse) {
   res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60');
   try {
     const { data, error } = await supabase
       .from('hr_positions')
