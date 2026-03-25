@@ -3,10 +3,8 @@ import nodemailer from 'nodemailer';
 type TemplateKey =
   | 'screening-link'
   | 'screening-reject'
-  | 'screening-follow-up'
   | 'interview-schedule'
   | 'talent-pool'
-  | 'inactive'
   | 'hired';
 
 const WRAPPER = `<!DOCTYPE html>
@@ -104,19 +102,6 @@ function getBodyContent(
 </table>
 <p class="text">We appreciate the effort you put into your application and wish you all the best in your future endeavors.</p>`;
 
-    case 'screening-follow-up':
-      return `
-<span class="badge">Screening Reminder</span>
-<p class="greeting">Dear ${vars.name},</p>
-<p class="text">This is a friendly reminder that you have a pending AI screening assessment for the <strong>${vars.role}</strong> position at Lifewood.</p>
-<p class="text">Please complete the assessment as soon as possible using the link below.</p>
-<a href="https://lifewoodph-ai-interviewer.vercel.app/" class="btn">Complete AI Screening &rarr;</a>
-<table class="details" cellpadding="0" cellspacing="0">
-  <tr><td class="dlabel">Position</td><td class="dvalue">${vars.role}</td></tr>
-  <tr><td class="dlabel">Date</td><td class="dvalue">${today()}</td></tr>
-</table>
-<p class="text">If we do not hear back, your application may be marked as inactive. Please reach out if you have any questions.</p>`;
-
     case 'interview-schedule':
       return `
 <span class="badge">Interview Invitation</span>
@@ -141,18 +126,6 @@ ${vars.body ? `<p class="text">${vars.body}</p>` : ''}
 </table>
 <p class="text">We appreciate your interest in Lifewood and will be in touch when a suitable opportunity arises.</p>`;
 
-    case 'inactive':
-      return `
-<span class="badge">Application Status</span>
-<p class="greeting">Dear ${vars.name},</p>
-<p class="text">We noticed we haven't heard back from you regarding your application for the <strong>${vars.role}</strong> position at Lifewood.</p>
-<p class="text">Your application has been marked as <strong>inactive</strong> due to no response within the allotted timeframe.</p>
-<table class="details" cellpadding="0" cellspacing="0">
-  <tr><td class="dlabel">Position</td><td class="dvalue">${vars.role}</td></tr>
-  <tr><td class="dlabel">Date</td><td class="dvalue">${today()}</td></tr>
-</table>
-<p class="text">If you remain interested in opportunities at Lifewood, we welcome you to reapply in the future. Thank you for your interest, and we wish you the best.</p>`;
-
     case 'hired':
       return `
 <span class="badge">Offer Extended</span>
@@ -175,10 +148,8 @@ function getSubject(templateKey: TemplateKey, role: string): string {
   switch (templateKey) {
     case 'screening-link':      return `Next Step: Pre-Assessment for ${role} at Lifewood`;
     case 'screening-reject':    return `Your Application for ${role} at Lifewood`;
-    case 'screening-follow-up': return `Reminder: Complete Your AI Screening — ${role} at Lifewood`;
     case 'interview-schedule':  return `Interview Scheduled — ${role} at Lifewood`;
     case 'talent-pool':         return `Update on Your Lifewood Application — ${role}`;
-    case 'inactive':            return `Your Lifewood Application Has Been Marked Inactive — ${role}`;
     case 'hired':               return `Congratulations! You've Been Hired — ${role} at Lifewood`;
     default:                    return `Update from Lifewood HR`;
   }
@@ -223,7 +194,7 @@ export async function sendWorkflowEmail(opts: {
 
   let body = customBody ?? '';
   if (!body && templateKey === 'interview-schedule') {
-    body = 'Congratulations on passing the initial screening! We would like to set an interview with you. Please note that if you do not join within 10 minutes of the scheduled time, we will consider your application as inactive.';
+    body = 'Congratulations on passing the initial screening! We would like to set an interview with you. Please review the date and details below.';
   }
   if (!body && templateKey === 'talent-pool') {
     body = "Thank you for your interest in Lifewood. While we don't have an immediate opening that matches your profile right now, we'd like to keep you in our talent pool for future opportunities.";

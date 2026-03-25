@@ -106,14 +106,54 @@ function formatName(name: string): string {
   return name.replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 }
 
-// Strips the trailing random ID suffix from position IDs (e.g. "ai-data-annotator-btfzkj" → "AI Data Annotator")
+// Formats a stored role value into a human-readable title.
+// Handles two formats:
+//   - Slug:  "ai-data-intern" or "ai-data-annotator-a1b2c3" → "AI Data Intern" / "AI Data Annotator"
+//   - Title: "AI Data Intern" (already human-readable, stored directly) → passed through unchanged
+// Only strips a trailing suffix if it is alphanumeric AND contains at least one digit
+// (random IDs like "a1b2c3"), so real words like "intern" are never removed.
+const FORMAT_ROLE_ACRONYMS = new Set(['ai', 'hr', 'it', 'qa', 'ui', 'ux', 'nlp', 'ml', 'api']);
 function formatRole(role: string): string {
+  // If the value contains spaces it is already a human-readable title — title-case and return.
+  if (role.includes(' ')) {
+    return role.trim().split(/\s+/).map(w =>
+      FORMAT_ROLE_ACRONYMS.has(w.toLowerCase()) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)
+    ).join(' ');
+  }
+  // Otherwise treat as a slug.
   const parts = role.split('-');
-  if (parts.length > 1 && /^[a-z0-9]{4,8}$/.test(parts[parts.length - 1])) {
+  if (parts.length > 1 && /^[a-z0-9]{4,8}$/.test(parts[parts.length - 1]) && /\d/.test(parts[parts.length - 1])) {
     parts.pop();
   }
-  const ACRONYMS = new Set(['ai', 'hr', 'it', 'qa', 'ui', 'ux', 'nlp', 'ml']);
-  return parts.map(p => ACRONYMS.has(p.toLowerCase()) ? p.toUpperCase() : p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+  return parts.map(p =>
+    FORMAT_ROLE_ACRONYMS.has(p.toLowerCase()) ? p.toUpperCase() : p.charAt(0).toUpperCase() + p.slice(1)
+  ).join(' ');
+}
+
+function FeedbackCell({ text }: { text: string | undefined }) {
+  const [expanded, setExpanded] = React.useState(false);
+  if (!text || text === '—') return <span className="text-xs text-[#8a9a8a]">—</span>;
+  const isLong = text.length > 120;
+  return (
+    <div className="flex items-start gap-2">
+      <p className={`flex-1 text-xs text-[#5a7a6a] leading-relaxed whitespace-normal break-words ${!expanded && isLong ? 'line-clamp-2' : ''}`}>
+        {text}
+      </p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setExpanded(v => !v)}
+          className="mt-0.5 shrink-0 flex items-center justify-center w-7 h-7 rounded-full border border-[#d9cfbf] bg-white text-[#1a3a2a] transition-colors hover:bg-[#f8f3ea]"
+          aria-label={expanded ? 'Collapse feedback' : 'Expand feedback'}
+          title={expanded ? 'Collapse feedback' : 'Expand feedback'}
+        >
+          <svg className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
 }
 
 function ActionBtn({
@@ -185,7 +225,7 @@ function ApplicantDetailsGrid({ applicant }: { applicant: HRApplicant }) {
   const detailEntries = [
     { label: 'Phone', value: applicant.applicationDetails.phone },
     { label: 'Experience Level', value: applicant.applicationDetails.experience },
-    { label: 'Preferred Work Location', value: applicant.applicationDetails.workLocation },
+    { label: 'Preferred Work Location', value: applicant.applicationDetails.workLocation?.replace(/\b\w/g, c => c.toUpperCase()) },
     { label: 'Availability', value: applicant.applicationDetails.availability },
     { label: 'Languages', value: applicant.applicationDetails.languages },
     { label: 'Skills', value: applicant.applicationDetails.skills },
@@ -224,11 +264,13 @@ function ApplicantTable({
   rows,
   renderRow,
   emptyMessage,
+  colWidths,
 }: {
   headers: string[];
   rows: HRApplicant[];
   renderRow: (a: HRApplicant) => React.ReactNode;
   emptyMessage: string;
+  colWidths?: string[];
 }) {
   const [page, setPage] = React.useState(1);
   React.useEffect(() => { setPage(1); }, [rows.length]);
@@ -244,7 +286,12 @@ function ApplicantTable({
         </div>
       ) : (
         <>
-          <table className="w-full min-w-max">
+          <table className={colWidths ? 'w-full table-fixed' : 'w-full min-w-max'}>
+            {colWidths && (
+              <colgroup>
+                {colWidths.map((w, i) => <col key={i} style={w === 'auto' ? {} : { width: w }} />)}
+              </colgroup>
+            )}
             <thead>
               <tr className="border-b border-[#f0ebe2] bg-[#faf8f4]">
                 {headers.map(h => (
@@ -408,7 +455,6 @@ export default function HRPipeline({ refreshKey }: { refreshKey?: number }) {
   const [draftInput, setDraftInput] = useState('');
   const [meetLinkInput, setMeetLinkInput] = useState('');
   const [interviewDateInput, setInterviewDateInput] = useState('');
-  const [rejectReason, setRejectReason] = useState('');
   const [rejectCustomBody, setRejectCustomBody] = useState('');
   const [talentPoolEmail, setTalentPoolEmail] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -454,10 +500,10 @@ export default function HRPipeline({ refreshKey }: { refreshKey?: number }) {
   // ── Modal open helpers ────────────────────────────────────────────────────
 
   const defaultInterviewDraft = (role: string) =>
-    `Congratulations on passing the initial screening for the ${formatRole(role)} position!\n\nWe would like to set an interview with you. Please review the date and details below.\n\nPlease note that if you do not join within 10 minutes of the scheduled time, we will consider your application as inactive. If you need to reschedule, please contact us in advance.\n\nThank you and best regards,\nThe Lifewood Team`;
+    `Congratulations on passing the initial screening for the ${formatRole(role)} position!\n\nWe would like to set an interview with you. Please review the date and details below.\n\nIf you need to reschedule, please contact us in advance.\n\nThank you and best regards,\nThe Lifewood Team`;
 
   const defaultRescheduleDraft = (role: string) =>
-    `We sincerely apologize for the inconvenience, but we need to reschedule your interview for the ${formatRole(role)} position due to unexpected circumstances on our end.\n\nPlease see your updated interview date and time below. All other details remain the same.\n\nAs a reminder, if you are unable to join within 10 minutes of the scheduled time, your application will be marked as inactive. If you need to further reschedule or have any concerns, please don't hesitate to reach out.\n\nThank you for your understanding and patience.\nThe Lifewood Team`;
+    `We sincerely apologize for the inconvenience, but we need to reschedule your interview for the ${formatRole(role)} position due to unexpected circumstances on our end.\n\nPlease see your updated interview date and time below. All other details remain the same.\n\nIf you need to further reschedule or have any concerns, please don't hesitate to reach out.\n\nThank you for your understanding and patience.\nThe Lifewood Team`;
 
   const openInterviewDraftModal = useCallback((id: string) => {
     const a = applicants.find(x => x.id === id);
@@ -497,9 +543,8 @@ export default function HRPipeline({ refreshKey }: { refreshKey?: number }) {
   const openRejectModal = useCallback((id: string) => {
     const a = applicants.find(x => x.id === id);
     if (!a) return;
-    setRejectReason('');
     setRejectCustomBody(
-      `Hi ${formatName(a.name)},\n\nThank you for your interest in the ${formatRole(a.role)} position at Lifewood.\n\nAfter careful consideration, we regret that we will not be moving forward. [reason here]\n\nWe appreciate your time and wish you all the best.\n\nBest regards,\nThe Lifewood HR Team`
+      `Hi ${formatName(a.name)},\n\nThank you for reaching out to Lifewood regarding the ${formatRole(a.role)} position and for the time you invested in your application.\n\nAfter careful consideration, we regret to inform you that we will not be moving forward with your application at this time.\n\nWe appreciate the effort you put into your application and wish you all the best in your future endeavors.\n\nBest regards,\nThe Lifewood HR Team`
     );
     setActionError(null);
     setModal({ kind: 'reject', applicantId: id });
@@ -509,7 +554,7 @@ export default function HRPipeline({ refreshKey }: { refreshKey?: number }) {
     setTalentPoolEmail(
       reEngage
         ? "We'd like to reconnect with you! We have new opportunities that may align with your profile. We would love to discuss how your experience could be a great fit for our team. Please let us know if you're interested."
-        : "Thank you for your interest in Lifewood. While we don't have an immediate opening that matches your profile, we'd like to keep you in our talent pool for future opportunities. We'll be in touch when a suitable role becomes available."
+        : "Thank you for your interest in Lifewood. After careful consideration, we will be moving forward with other candidates at this time. However, we have saved your profile in our future candidates pool, and if an open position or any opportunity related to your role becomes available, we will contact you immediately."
     );
     setActionError(null);
     setModal({ kind: 'talent-pool-email', applicantId: id, reEngage });
@@ -558,13 +603,7 @@ export default function HRPipeline({ refreshKey }: { refreshKey?: number }) {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-black text-[#1a2e1a] tracking-tight">HR Pipeline</h2>
-          <p className="text-xs text-[#6a8a7a] font-medium mt-0.5">{applicants.length} total applicant{applicants.length !== 1 ? 's' : ''} across all stages</p>
-        </div>
-      </div>
+
 
       {/* Pipeline stage guide */}
       <div className="bg-white rounded-2xl border border-[#e8e3da] shadow-sm overflow-hidden">
@@ -814,6 +853,7 @@ export default function HRPipeline({ refreshKey }: { refreshKey?: number }) {
             headers={['Candidate', 'Details', 'Feedback', 'HR Recommendation', 'Action']}
             rows={interviewResults}
             emptyMessage="No interview results to review."
+            colWidths={['260px', '90px', 'auto', '190px', '150px']}
             renderRow={a => {
               const feedback = inlineFeedback[a.id] ?? a.hrFeedback ?? '';
               const rec = inlineRec[a.id] ?? a.hrRecommendation ?? '';
@@ -896,6 +936,7 @@ export default function HRPipeline({ refreshKey }: { refreshKey?: number }) {
             headers={['Candidate', 'Details', 'Feedback', 'Recommendation', 'Actions']}
             rows={shortlisted}
             emptyMessage="No shortlisted candidates."
+            colWidths={['260px', '90px', 'auto', '190px', '150px']}
             renderRow={a => (
               <>
                 <NameCell applicant={a} />
@@ -904,8 +945,8 @@ export default function HRPipeline({ refreshKey }: { refreshKey?: number }) {
                     View
                   </GhostBtn>
                 </td>
-                <td className="px-4 py-3 w-[240px]">
-                  <p className="text-xs text-[#5a7a6a] leading-relaxed whitespace-normal break-words">{a.hrFeedback || '—'}</p>
+                <td className="px-4 py-3">
+                  <FeedbackCell text={a.hrFeedback} />
                 </td>
                 <td className="px-4 py-3">
                   <RecommendationBadge recommendation={a.hrRecommendation} />
@@ -941,20 +982,18 @@ export default function HRPipeline({ refreshKey }: { refreshKey?: number }) {
         <div className="space-y-2">
           <p className="text-xs text-[#6a8a7a] font-medium px-1">Candidates marked as hired after the welcome email was sent.</p>
           <ApplicantTable
-            headers={['Candidate', 'Details', 'Feedback', 'Recommendation']}
+            headers={['Candidate', 'Details', 'Feedback']}
             rows={hired}
             emptyMessage="No hired candidates yet."
+            colWidths={['260px', '90px', 'auto']}
             renderRow={a => (
               <>
                 <NameCell applicant={a} />
                 <td className="px-4 py-3">
                   <GhostBtn onClick={() => openApplicantDetailsModal(a.id)}>View</GhostBtn>
                 </td>
-                <td className="px-4 py-3 w-[240px]">
-                  <p className="text-xs text-[#5a7a6a] leading-relaxed whitespace-normal break-words">{a.hrFeedback || '—'}</p>
-                </td>
                 <td className="px-4 py-3">
-                  <RecommendationBadge recommendation={a.hrRecommendation} />
+                  <p className="text-xs text-[#5a7a6a] leading-relaxed whitespace-normal break-words">{a.hrFeedback || '—'}</p>
                 </td>
               </>
             )}
@@ -970,6 +1009,7 @@ export default function HRPipeline({ refreshKey }: { refreshKey?: number }) {
             headers={['Candidate', 'Details', 'Feedback', 'Recommendation', 'Actions']}
             rows={talentPool}
             emptyMessage="No candidates in the talent pool."
+            colWidths={['260px', '90px', 'auto', '190px', '150px']}
             renderRow={a => (
               <>
                 <NameCell applicant={a} />
@@ -977,7 +1017,7 @@ export default function HRPipeline({ refreshKey }: { refreshKey?: number }) {
                   <GhostBtn onClick={() => openApplicantDetailsModal(a.id)}>View</GhostBtn>
                 </td>
                 <td className="px-4 py-3">
-                  <p className="text-xs text-[#5a7a6a] leading-relaxed whitespace-normal break-words">{a.hrFeedback || '—'}</p>
+                  <FeedbackCell text={a.hrFeedback} />
                 </td>
                 <td className="px-4 py-3">
                   <RecommendationBadge recommendation={a.hrRecommendation} />
@@ -1237,26 +1277,14 @@ export default function HRPipeline({ refreshKey }: { refreshKey?: number }) {
         const applicant = applicants.find(a => a.id === modal.applicantId);
         if (!applicant) return null;
         return (
-          <Modal title={`Reject — ${formatName(applicant.name)}`} onClose={closeModal}>
+          <Modal title={`Reject — ${formatName(applicant.name)}`} onClose={closeModal} medium>
             <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-black text-[#1a3a2a] uppercase tracking-widest mb-1.5">
-                  Rejection Reason (optional)
-                </label>
-                <input
-                  type="text"
-                  value={rejectReason}
-                  onChange={e => setRejectReason(e.target.value)}
-                  placeholder="Briefly describe the reason..."
-                  className="w-full rounded-xl border border-[#e8e3da] bg-[#faf8f4] px-4 py-2.5 text-sm text-[#1a2e1a] font-semibold focus:outline-none focus:ring-2 focus:ring-[#1a3a2a]/20"
-                />
-              </div>
               <div>
                 <label className="block text-xs font-black text-[#1a3a2a] uppercase tracking-widest mb-1.5">
                   Email Body
                 </label>
                 <textarea
-                  rows={5}
+                  rows={12}
                   value={rejectCustomBody}
                   onChange={e => setRejectCustomBody(e.target.value)}
                   className="w-full rounded-xl border border-[#e8e3da] bg-[#faf8f4] px-4 py-2.5 text-sm text-[#1a2e1a] font-medium leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#1a3a2a]/20 resize-none"
@@ -1271,7 +1299,7 @@ export default function HRPipeline({ refreshKey }: { refreshKey?: number }) {
                   danger
                   onClick={() =>
                     void run(
-                      () => rejectApplicantWithEmail(applicant.id, rejectReason, rejectCustomBody),
+                      () => rejectApplicantWithEmail(applicant.id, rejectCustomBody),
                       `${applicant.name} has been rejected and removed`
                     )
                   }

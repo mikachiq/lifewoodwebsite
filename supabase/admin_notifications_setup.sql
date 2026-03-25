@@ -78,7 +78,17 @@ set search_path = public
 as $$
 declare
   post_title text;
+  actor_is_admin boolean := false;
 begin
+  -- Skip notifications for admin users reacting to their own posts
+  select coalesce(is_admin, false) or coalesce(is_super_admin, false)
+    into actor_is_admin
+    from public.profiles where id = new.user_id;
+
+  if actor_is_admin then
+    return new;
+  end if;
+
   select title into post_title from public.news_posts where id = new.post_id;
 
   insert into public.admin_notifications (type, message, link)
@@ -106,7 +116,17 @@ set search_path = public
 as $$
 declare
   post_title text;
+  actor_is_admin boolean := false;
 begin
+  -- Skip notifications for admin users commenting
+  select coalesce(is_admin, false) or coalesce(is_super_admin, false)
+    into actor_is_admin
+    from public.profiles where id = new.user_id;
+
+  if actor_is_admin then
+    return new;
+  end if;
+
   select title into post_title from public.news_posts where id = new.post_id;
 
   insert into public.admin_notifications (type, message, link)

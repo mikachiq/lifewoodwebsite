@@ -152,10 +152,7 @@ create table if not exists public.hr_applicants (
   screening_sent_at timestamptz,
   screening_completed_at timestamptz,
 
-  -- SLA
   last_contacted timestamptz,
-  response_due_at timestamptz,
-  follow_up_due_at timestamptz,
 
   -- Interview
   interview_scheduled_for timestamptz,
@@ -212,6 +209,4 @@ end $$;
 create index if not exists idx_hr_applicants_status on public.hr_applicants (status);
 create index if not exists idx_hr_applicants_email on public.hr_applicants (email);
 create index if not exists idx_hr_applicants_applied_date on public.hr_applicants (applied_date desc);
-create index if not exists idx_hr_applicants_response_due on public.hr_applicants (response_due_at) where response_due_at is not null;
-create index if not exists idx_hr_applicants_follow_up_due on public.hr_applicants (follow_up_due_at) where follow_up_due_at is not null;
 create index if not exists idx_hr_applicants_talent_pool on public.hr_applicants (talent_pool) where talent_pool = true;

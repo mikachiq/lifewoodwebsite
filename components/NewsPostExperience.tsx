@@ -357,7 +357,7 @@ export default function NewsPostExperience({ postId, embedded = false }: { postI
                     <p className="text-[13px] font-black text-[#163126]">{authorName}</p>
                     <p className="text-[11px] text-[#8a9a8a]">{formatDate(post.published_at || post.created_at)}</p>
                     <p className="mt-1.5 text-[13px] font-semibold leading-relaxed text-[#2f473a]">{post.title}</p>
-                    {post.body ? <div className="mt-1.5 text-[12px] text-[#567263] leading-relaxed news-content-compact" dangerouslySetInnerHTML={{ __html: post.body }} /> : null}
+                    {post.body ? <div className="mt-1.5 text-[12px] text-[#567263] leading-relaxed news-content" dangerouslySetInnerHTML={{ __html: post.body }} /> : null}
                   </div>
                 </div>
               </div>

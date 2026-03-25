@@ -89,12 +89,84 @@ const CompanyView: React.FC<CompanyViewProps> = ({ onBack, translations, onJoinT
   };
 
   const processSteps = [
-    { icon: "\u{1F4AC}", title: translations.portalProcessStep1Title, desc: translations.portalProcessStep1Desc },
-    { icon: "\u{1F4CA}", title: translations.portalProcessStep2Title, desc: translations.portalProcessStep2Desc },
-    { icon: "\u{1F9E0}", title: translations.portalProcessStep3Title, desc: translations.portalProcessStep3Desc },
-    { icon: "✓", title: translations.portalProcessStep4Title, desc: translations.portalProcessStep4Desc },
-    { icon: "\u{1F680}", title: translations.portalProcessStep5Title, desc: translations.portalProcessStep5Desc },
-    { icon: "\u{1F504}", title: translations.portalProcessStep6Title, desc: translations.portalProcessStep6Desc }
+    {
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          <line x1="9" y1="9" x2="15" y2="9" />
+          <line x1="9" y1="13" x2="13" y2="13" />
+        </svg>
+      ),
+      title: translations.portalProcessStep1Title,
+      desc: translations.portalProcessStep1Desc
+    },
+    {
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="3" y1="9" x2="21" y2="9" />
+          <path d="M8 14h1v3H8z" />
+          <path d="M11.5 12h1v5h-1z" />
+          <path d="M15 10h1v7h-1z" />
+        </svg>
+      ),
+      title: translations.portalProcessStep2Title,
+      desc: translations.portalProcessStep2Desc
+    },
+    {
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+          <circle cx="12" cy="12" r="3" />
+          <circle cx="12" cy="4" r="1.5" />
+          <circle cx="12" cy="20" r="1.5" />
+          <circle cx="4" cy="8" r="1.5" />
+          <circle cx="20" cy="8" r="1.5" />
+          <circle cx="4" cy="16" r="1.5" />
+          <circle cx="20" cy="16" r="1.5" />
+          <line x1="12" y1="5.5" x2="12" y2="9" />
+          <line x1="12" y1="15" x2="12" y2="18.5" />
+          <line x1="5.3" y1="8.7" x2="9" y2="10.5" />
+          <line x1="15" y1="13.5" x2="18.7" y2="15.3" />
+          <line x1="5.3" y1="15.3" x2="9" y2="13.5" />
+          <line x1="15" y1="10.5" x2="18.7" y2="8.7" />
+        </svg>
+      ),
+      title: translations.portalProcessStep3Title,
+      desc: translations.portalProcessStep3Desc
+    },
+    {
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+          <rect x="9" y="3" width="6" height="4" rx="1" />
+          <polyline points="9 12 11 14 15 10" />
+          <line x1="9" y1="17" x2="15" y2="17" />
+        </svg>
+      ),
+      title: translations.portalProcessStep4Title,
+      desc: translations.portalProcessStep4Desc
+    },
+    {
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
+      ),
+      title: translations.portalProcessStep5Title,
+      desc: translations.portalProcessStep5Desc
+    },
+    {
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+          <path d="M21 3v5h-5" />
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+          <path d="M8 16H3v5" />
+        </svg>
+      ),
+      title: translations.portalProcessStep6Title,
+      desc: translations.portalProcessStep6Desc
+    }
   ];
 
   const toolsCategories = [
@@ -146,10 +218,52 @@ const CompanyView: React.FC<CompanyViewProps> = ({ onBack, translations, onJoinT
   ];
 
   const ethicsPillars = [
-    { icon: "\u{1F512}", title: translations.portalEthics1Title, desc: translations.portalEthics1Desc },
-    { icon: "\u{1F6E1}\uFE0F", title: translations.portalEthics2Title, desc: translations.portalEthics2Desc },
-    { icon: "\u2696\uFE0F", title: translations.portalEthics3Title, desc: translations.portalEthics3Desc },
-    { icon: "\u{1F4DD}", title: translations.portalEthics4Title, desc: translations.portalEthics4Desc }
+    {
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+          <rect x="3" y="11" width="18" height="11" rx="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          <circle cx="12" cy="16" r="1" fill="currentColor" stroke="none" />
+        </svg>
+      ),
+      title: translations.portalEthics1Title,
+      desc: translations.portalEthics1Desc
+    },
+    {
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+          <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z" />
+          <polyline points="9 12 11 14 15 10" />
+        </svg>
+      ),
+      title: translations.portalEthics2Title,
+      desc: translations.portalEthics2Desc
+    },
+    {
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+          <path d="M12 3L4 7.5v4c0 4.42 3.4 8.57 8 9.58 4.6-1.01 8-5.16 8-9.58v-4L12 3z" />
+          <line x1="8" y1="12" x2="16" y2="12" />
+          <line x1="7" y1="9" x2="17" y2="9" />
+          <line x1="9" y1="15" x2="15" y2="15" />
+        </svg>
+      ),
+      title: translations.portalEthics3Title,
+      desc: translations.portalEthics3Desc
+    },
+    {
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <line x1="10" y1="9" x2="8" y2="9" />
+        </svg>
+      ),
+      title: translations.portalEthics4Title,
+      desc: translations.portalEthics4Desc
+    }
   ];
 
 
@@ -202,10 +316,10 @@ const CompanyView: React.FC<CompanyViewProps> = ({ onBack, translations, onJoinT
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8">
               {processSteps.map((step, i) => (
                 <div key={i} className="relative z-10 flex flex-col items-center text-center group">
-                  <div className="w-24 h-24 bg-white dark:bg-dark-serpent border-4 border-paper dark:border-green-900 rounded-full flex items-center justify-center text-3xl shadow-lg mb-6 group-hover:border-castleton-green dark:group-hover:border-saffron transition-colors bg-paper dark:bg-green-900/20">
+                  <div className="w-24 h-24 bg-white dark:bg-dark-serpent border-4 border-paper dark:border-green-900 rounded-full flex items-center justify-center shadow-lg mb-6 group-hover:border-castleton-green dark:group-hover:border-saffron transition-colors bg-paper dark:bg-green-900/20 text-castleton-green dark:text-saffron">
                     {step.icon}
                   </div>
-                  <h3 className="text-lg font-bold text-dark-serpent dark:text-white mb-3 leading-tight">{step.title}</h3>
+                  <h3 className="text-lg font-bold text-dark-serpent dark:text-white mb-3 leading-tight min-h-[3.5rem] flex items-start justify-center">{step.title}</h3>
                   <p className="text-sm text-green-2 dark:text-green-4 font-medium">{step.desc}</p>
                 </div>
               ))}
@@ -291,7 +405,7 @@ const CompanyView: React.FC<CompanyViewProps> = ({ onBack, translations, onJoinT
           <div className="grid md:grid-cols-2 gap-8">
             {ethicsPillars.map((pillar, i) => (
               <div key={i} className="flex gap-6 p-8 bg-white dark:bg-white/5 rounded-[32px] border border-paper dark:border-green-900/30 shadow-sm hover:shadow-xl transition-all">
-                <div className="w-16 h-16 bg-paper dark:bg-green-900/20 rounded-2xl flex items-center justify-center text-3xl shrink-0">
+                <div className="w-16 h-16 bg-paper dark:bg-green-900/20 rounded-2xl flex items-center justify-center shrink-0 text-castleton-green dark:text-saffron">
                   {pillar.icon}
                 </div>
                 <div>
@@ -308,32 +422,7 @@ const CompanyView: React.FC<CompanyViewProps> = ({ onBack, translations, onJoinT
       <section id="portal-start" className="py-24 bg-paper/30 dark:bg-[#0d1f16] border-t border-paper dark:border-green-900/30">
         <div className="max-w-[1400px] mx-auto px-6 md:px-12">
           
-          {/* Part 1: Project Journey Roadmap */}
-          <div className="mb-24">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-black text-dark-serpent dark:text-white mb-4 tracking-tighter">{translations.portalJourneyTitle}</h2>
-              <p className="text-xl text-green-2 dark:text-green-4 font-medium">{translations.portalJourneyDesc}</p>
-            </div>
-
-            <div className="relative">
-               {/* Connecting Line */}
-               <div className="hidden lg:block absolute top-8 left-0 w-full h-1 bg-gradient-to-r from-castleton-green/20 via-saffron/50 to-castleton-green/20 dark:from-green-900/40 dark:via-saffron/40 dark:to-green-900/40 -z-0 rounded-full" />
-               
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
-                 {roadmapSteps.map((step, i) => (
-                   <div key={i} className="relative z-10 flex flex-col items-center text-center group animate-in fade-in slide-in-from-left-4 duration-700" style={{ animationDelay: `${i * 150}ms` }}>
-                     <div className="w-16 h-16 bg-white dark:bg-dark-serpent border-4 border-castleton-green dark:border-saffron rounded-full flex items-center justify-center text-2xl shadow-lg mb-6 z-10 relative">
-                       {step.icon}
-                     </div>
-                     <h3 className="text-base font-black text-dark-serpent dark:text-white mb-2 leading-tight">{step.title}</h3>
-                     <p className="text-xs text-green-2 dark:text-green-4 font-bold leading-relaxed px-2">{step.desc}</p>
-                   </div>
-                 ))}
-               </div>
-            </div>
-          </div>
-
-          {/* Part 2: The Form */}
+          {/* The Form */}
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-black text-dark-serpent dark:text-white mb-4">{translations.projCtaTitle}</h2>
@@ -385,7 +474,23 @@ const CompanyView: React.FC<CompanyViewProps> = ({ onBack, translations, onJoinT
                         <input type="text" required name="service" value={formState.service} onChange={handleInputChange} placeholder={translations.projFormService} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-80 px-1">{translations.projFormEngagement}</label>
+                        <div className="inline-flex items-center gap-1.5 px-1">
+                          <label className="text-[10px] font-bold text-green-2 dark:text-green-4 uppercase tracking-wider opacity-80">{translations.projFormEngagement}</label>
+                          <div className="relative group/tip flex-shrink-0">
+                            <span className="w-3.5 h-3.5 rounded-full bg-castleton-green/20 dark:bg-saffron/20 text-castleton-green dark:text-saffron text-[9px] font-black flex items-center justify-center cursor-default select-none leading-none">?</span>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-dark-serpent dark:bg-[#0d1f16] text-white rounded-2xl p-3.5 shadow-2xl border border-white/10 z-50 pointer-events-none opacity-0 group-hover/tip:opacity-100 transition-opacity duration-200">
+                              <p className="text-[11px] font-bold text-saffron mb-2 uppercase tracking-wide">What is an Engagement Model?</p>
+                              <p className="text-[11px] text-white/80 leading-relaxed mb-2.5">It's how you'd like to work with us. Choose the one that best fits your project needs:</p>
+                              <ul className="space-y-1.5">
+                                <li className="text-[11px] text-white/90"><span className="font-bold text-white">Dedicated Team</span> — A committed group works exclusively on your project long-term.</li>
+                                <li className="text-[11px] text-white/90"><span className="font-bold text-white">One-time Project</span> — A fixed-scope delivery with a clear start and end date.</li>
+                                <li className="text-[11px] text-white/90"><span className="font-bold text-white">Ongoing Retainer</span> — A flexible monthly arrangement for continuous support.</li>
+                              </ul>
+                              <p className="text-[10px] text-white/50 mt-2.5 italic">Or type below if you have another engagement model in mind.</p>
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-dark-serpent dark:border-t-[#0d1f16]" />
+                            </div>
+                          </div>
+                        </div>
                         <input type="text" required name="model" value={formState.model} onChange={handleInputChange} placeholder={translations.projFormEngagement} className="w-full p-3.5 bg-paper/10 dark:bg-white/5 rounded-2xl border-2 border-castleton-green/10 focus:border-castleton-green focus:outline-none transition-all text-dark-serpent dark:text-white placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs font-bold text-sm" />
                       </div>
                       <div className="space-y-1">

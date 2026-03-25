@@ -2,8 +2,8 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { sendWorkflowEmail } from '../_lib/email.js';
 
 const VALID_KEYS = [
-  'screening-link', 'screening-reject', 'screening-follow-up',
-  'interview-schedule', 'talent-pool', 'inactive', 'hired',
+  'screening-link', 'screening-reject',
+  'interview-schedule', 'talent-pool', 'hired',
 ];
 
 function readBody(req: IncomingMessage): Promise<string> {

@@ -23,7 +23,7 @@ BEGIN
     'application_received',
     'hr_applicant',
     NEW.name,
-    'Applied for: ' || NEW.role
+    'Applied for: ' || initcap(replace(NEW.role, '-', ' '))
   );
   RETURN NEW;
 END;

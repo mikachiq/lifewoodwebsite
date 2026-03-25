@@ -11,6 +11,15 @@ function prettifyFormType(value: HRPosition['application_form_type']) {
   return value === 'intern' ? 'AI Intern Special' : 'Standard';
 }
 
+const TITLE_ACRONYMS = new Set(['ai', 'hr', 'it', 'qa', 'ui', 'ux', 'nlp', 'ml', 'api']);
+function toTitleCase(str: string): string {
+  return str.trim().split(/\s+/).map(word =>
+    TITLE_ACRONYMS.has(word.toLowerCase())
+      ? word.toUpperCase()
+      : word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+}
+
 export default function AdminHiringPage() {
   const { pushToast } = useToast();
   const [positions, setPositions] = React.useState<PositionWithCount[]>([]);
@@ -72,7 +81,7 @@ export default function AdminHiringPage() {
     try {
       setSaving(true);
       const created = await createHRPosition({
-        title: form.title,
+        title: toTitleCase(form.title),
         department: form.department,
         employmentType: form.employmentType,
         location: form.location,

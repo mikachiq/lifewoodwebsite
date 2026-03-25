@@ -25,6 +25,13 @@ type AdminNotif = {
   created_at: string;
 };
 
+type InterviewReminder = {
+  id: string;
+  name: string;
+  role: string;
+  interview_scheduled_for: string | null;
+};
+
 function getInitials(name: string) {
   if (!name) return '?';
   return name.split(' ').filter(Boolean).slice(0, 2).map(n => n[0].toUpperCase()).join('');
@@ -70,6 +77,17 @@ function capitalizeName(name: string): string {
 function hasLongText(value: string | null | undefined) {
   return (value || '').trim().length > 90;
 }
+
+const DASHBOARD_TABLE_WIDTHS = {
+  checkbox: '44px',
+  inquirer: '360px',
+  type: '160px',
+  message: '280px',
+  details: '170px',
+  appliedDate: '130px',
+  status: '160px',
+  action: '150px',
+} as const;
 
 function projectDetails(inquiry: Inquiry) {
   return [
@@ -142,21 +160,21 @@ const NAV_ITEMS: { key: NavSection; label: string; icon: React.ReactNode; href?:
     ),
   },
   {
+    key: 'projects',
+    label: 'Projects',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+        <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+    ),
+  },
+  {
     key: 'applicants',
     label: 'Applicants',
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
         <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
-      </svg>
-    ),
-  },
-  {
-    key: 'projects',
-    label: 'Projects',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
       </svg>
     ),
   },
@@ -285,7 +303,7 @@ The Lifewood Team`;
 }
 
 export default function AdminDashboardPage() {
-  const { profile, isSuperAdmin } = useProfile();
+  const { profile, isSuperAdmin, displayName } = useProfile();
   const { pushToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -307,10 +325,47 @@ export default function AdminDashboardPage() {
   const [emailBody, setEmailBody] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [adminNotifs, setAdminNotifs] = useState<AdminNotif[]>([]);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+  const [todayReminders, setTodayReminders] = useState<InterviewReminder[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const { confirm, modal: confirmModal } = useConfirm();
   const notifRef = React.useRef<HTMLDivElement | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTodayReminders = async () => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      const supabase = getSupabase();
+      const { data } = await supabase
+        .from('hr_applicants')
+        .select('id, name, role, interview_scheduled_for')
+        .eq('is_deleted', false)
+        .eq('status', 'Interview Scheduled')
+        .gte('interview_scheduled_for', start.toISOString())
+        .lt('interview_scheduled_for', end.toISOString())
+        .order('interview_scheduled_for', { ascending: true });
+
+      if (!cancelled) {
+        setTodayReminders((data as InterviewReminder[] | null) || []);
+      }
+    };
+
+    void loadTodayReminders();
+    const timer = window.setInterval(() => void loadTodayReminders(), 60000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   const handleLogout = async () => {
     const supabase = getSupabase();
@@ -384,6 +439,9 @@ export default function AdminDashboardPage() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'admin_notifications' }, payload => {
         setAdminNotifs(prev => [payload.new as AdminNotif, ...prev]);
       })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'admin_notifications' }, payload => {
+        setAdminNotifs(prev => prev.map(n => n.id === (payload.new as AdminNotif).id ? { ...n, ...(payload.new as AdminNotif) } : n));
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -432,7 +490,12 @@ export default function AdminDashboardPage() {
       await Promise.all(selectedItems.map(item => deleteInquiry(item.id, item.source)));
       for (const item of selectedItems) {
         const actionKey = item.source === 'hr_applicants' ? 'deleted_applicant' : item.context === 'contact' ? 'deleted_inquiry' : 'deleted_application';
-        void logAdminAction(actionKey, item.context, capitalizeName(item.name || item.email));
+        const snapshot = item.source === 'hr_applicants'
+          ? JSON.stringify(applicantDetails(item).reduce<Record<string, string>>((acc, { label, value }) => { acc[label] = String(value); return acc; }, {}))
+          : item.context === 'contact'
+            ? JSON.stringify({ Name: item.name || '', Email: item.email || '', Message: item.message || '' })
+            : JSON.stringify(projectDetails(item).reduce<Record<string, string>>((acc, { label, value }) => { acc[label] = String(value); return acc; }, {}));
+        void logAdminAction(actionKey, item.context, capitalizeName(item.name || item.email), snapshot);
       }
       setInquiries(prev => {
         const next = prev.filter(item => !selectedInquiryIds.includes(item.id));
@@ -474,7 +537,7 @@ export default function AdminDashboardPage() {
   const sectionTitle: Record<NavSection, string> = {
     overview: 'Dashboard',
     contacts: 'Contact Messages',
-    applicants: 'Applicants',
+    applicants: 'HR Pipeline',
     projects: 'Project Requests',
     posts: 'Posts',
     hiring: 'Hiring',
@@ -490,32 +553,55 @@ export default function AdminDashboardPage() {
     logs: 'Track every action performed by admins across the system.',
   };
   const unread = adminNotifs.filter(n => !n.read).length;
+  const greetingName = displayName || 'Admin';
+  const dateLabel = currentTime.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const timeLabel = currentTime.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 
   if (!profile) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f2ece0] font-manrope">
+    <div className="relative flex h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(31,74,56,0.2),_transparent_24%),linear-gradient(135deg,#efe7db_0%,#f7f4ef_46%,#ece5d8_100%)] font-manrope">
+      <div className="pointer-events-none absolute inset-0 opacity-50">
+        <div className="absolute inset-y-0 left-[72px] w-px bg-[linear-gradient(180deg,transparent,rgba(24,58,42,0.18),transparent)]" />
+        <div className="absolute right-16 top-12 h-40 w-40 rounded-full bg-[#1f4a38]/10 blur-3xl" />
+        <div className="absolute bottom-12 left-1/3 h-56 w-56 rounded-full bg-[#d8b86b]/10 blur-3xl" />
+      </div>
 
       {/* ── Sidebar ── */}
       <aside
-        className={`relative flex flex-col shrink-0 transition-all duration-300 bg-[#f2ece0] border-r border-[#e0d9ce] ${
+        className={`relative z-30 flex flex-col shrink-0 transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] border-r border-white/10 bg-[linear-gradient(180deg,#143527_0%,#102d21_55%,#0d241a_100%)] text-white shadow-[18px_0_48px_rgba(8,22,16,0.18)] ${
           sidebarCollapsed ? 'w-[72px]' : 'w-64'
         }`}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 pt-7 pb-4 border-b border-[#e0d9ce]">
-          <img src="/assets/logo.png" alt="Lifewood" className="h-8 w-auto object-contain shrink-0" />
-          {!sidebarCollapsed && (
-            <>
-              <span className="font-semibold text-xs text-[#4a6a5a] tracking-[0.28em] uppercase">Admin</span>
-              <div className="relative ml-auto" ref={notifRef}>
+        <div className={`border-b border-white/10 pt-7 pb-4 transition-[padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${sidebarCollapsed ? 'px-3' : 'px-5'}`}>
+          <div className={`flex items-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
+          <div className={`flex shrink-0 items-center rounded-2xl border border-white/10 bg-white/95 shadow-[0_10px_22px_rgba(0,0,0,0.14)] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            sidebarCollapsed ? 'h-11 w-11 justify-center px-0' : 'h-11 px-2.5'
+          }`}>
+            <img
+              src="/assets/logo.png"
+              alt="Lifewood"
+              className={`${sidebarCollapsed ? 'h-6 w-6 object-contain' : 'h-[26px] w-auto object-contain'} transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]`}
+            />
+          </div>
+              <div className="relative shrink-0 transition-all duration-300 ease-out" ref={notifRef}>
                 <button
                   type="button"
                   onClick={() => setNotifOpen(v => !v)}
-                  className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#e0d9ce] bg-white transition-colors hover:bg-[#f2ece0]"
+                  className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/8 text-white backdrop-blur-sm transition-colors hover:bg-white/14"
                   aria-label="Admin notifications"
                 >
-                  <svg className="w-4 h-4 text-[#1a3a2a]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V4a1 1 0 10-2 0v1.083A6 6 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
                   {unread > 0 && (
@@ -526,7 +612,7 @@ export default function AdminDashboardPage() {
                 </button>
 
                 {notifOpen && (
-                  <div className="absolute left-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-[#e0d9ce] bg-white shadow-2xl">
+                  <div className={`absolute z-50 w-80 overflow-hidden rounded-2xl border border-[#e0d9ce] bg-white shadow-2xl ${sidebarCollapsed ? 'left-full top-0 ml-2' : 'left-0 top-full mt-2'}`}>
                     <div className="flex items-center justify-between border-b border-[#f0ebe2] px-4 py-3">
                       <span className="text-sm font-black text-[#1a2e1a]">Notifications</span>
                       {unread > 0 && (
@@ -571,87 +657,64 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
               </div>
-            </>
-          )}
-          {sidebarCollapsed && (
-            <div className="relative ml-auto" ref={notifRef}>
-              <button
-                type="button"
-                onClick={() => setNotifOpen(v => !v)}
-                className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#e0d9ce] bg-white transition-colors hover:bg-[#f2ece0]"
-                aria-label="Admin notifications"
-              >
-                <svg className="w-4 h-4 text-[#1a3a2a]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V4a1 1 0 10-2 0v1.083A6 6 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                {unread > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">
-                    {unread > 9 ? '9+' : unread}
-                  </span>
-                )}
-              </button>
+          </div>
 
-              {notifOpen && (
-                <div className="absolute left-full top-0 z-50 ml-2 w-80 overflow-hidden rounded-2xl border border-[#e0d9ce] bg-white shadow-2xl">
-                  <div className="flex items-center justify-between border-b border-[#f0ebe2] px-4 py-3">
-                    <span className="text-sm font-black text-[#1a2e1a]">Notifications</span>
-                    {unread > 0 && (
-                      <button
-                        type="button"
-                        onClick={markAllRead}
-                        className="text-[11px] font-bold text-[#1a3a2a] transition-opacity hover:opacity-70"
-                      >
-                        Mark all as read
-                      </button>
+          <div className={`overflow-hidden transition-all duration-400 ease-out ${sidebarCollapsed ? 'mt-0 max-h-0 opacity-0' : 'mt-4 max-h-[420px] opacity-100 delay-100'}`}>
+            <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#8fb3a1]">{dateLabel}</p>
+              <p className="mt-1 text-lg font-black tracking-[0.04em] text-white">{timeLabel}</p>
+              <p className="mt-3 text-center text-sm font-semibold text-[#a9c7b8]">Hello {greetingName}</p>
+
+              <div className="mt-4 rounded-2xl border border-white/8 bg-black/10 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#8fb3a1]">Reminders For Today</p>
+                  <span className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-bold text-white/80">
+                    {todayReminders.length}
+                  </span>
+                </div>
+
+                {todayReminders.length === 0 ? (
+                  <p className="mt-3 text-xs leading-relaxed text-[#d2ddd6]">No reminders.</p>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    {todayReminders.slice(0, 3).map(reminder => (
+                      <div key={reminder.id} className="rounded-2xl border border-white/8 bg-white/6 px-3 py-2.5">
+                        <p className="text-xs font-bold text-white">{reminder.name}</p>
+                        <p className="mt-0.5 text-[11px] text-[#b8cec2]">{reminder.role}</p>
+                        <p className="mt-1 text-[11px] font-semibold text-[#f0d48f]">
+                          {reminder.interview_scheduled_for
+                            ? new Date(reminder.interview_scheduled_for).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              })
+                            : 'Time pending'}
+                        </p>
+                      </div>
+                    ))}
+                    {todayReminders.length > 3 && (
+                      <p className="text-[11px] font-semibold text-[#8fb3a1]">
+                        +{todayReminders.length - 3} more interview reminder{todayReminders.length - 3 === 1 ? '' : 's'}
+                      </p>
                     )}
                   </div>
-                  <div className="max-h-80 overflow-y-auto">
-                    {adminNotifs.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-xs font-medium text-[#8a9a8a]">No notifications yet</div>
-                    ) : adminNotifs.map(n => (
-                      <button
-                        key={n.id}
-                        type="button"
-                        onClick={() => {
-                          if (!n.read) void markOneRead(n.id);
-                          setNotifOpen(false);
-                          if (n.link) navigate(n.link);
-                        }}
-                        className={`w-full border-b border-[#f7f4ef] px-4 py-3 text-left transition-colors last:border-0 hover:bg-[#faf8f4] ${!n.read ? 'bg-[#edf4ef]' : ''}`}
-                      >
-                        <div className="flex items-start gap-2.5">
-                          <span className="mt-0.5 shrink-0 text-base">{notifIcon(n.type)}</span>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start gap-1.5">
-                              {!n.read && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#1a3a2a]" />}
-                              <p className="text-xs font-semibold leading-relaxed text-[#1a2e1a]">{n.message}</p>
-                            </div>
-                            <p className="ml-3 mt-1 text-[10px] text-[#8a9a8a]">
-                              {new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Collapse toggle */}
         <button
           onClick={() => setSidebarCollapsed(c => !c)}
-          className="absolute -right-3 top-[68px] w-6 h-6 rounded-full bg-white border border-[#e0d9ce] shadow-sm flex items-center justify-center hover:bg-[#f2ece0] transition-colors z-10"
+          className="absolute -right-3 top-[118px] z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[#d8dfd7] bg-white text-[#1a3a2a] shadow-[0_10px_24px_rgba(15,42,30,0.16)] transition-colors hover:bg-[#eef3ef]"
         >
-          <svg className={`w-3 h-3 text-[#4a6a5a] transition-transform duration-300 ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+          <svg className={`w-3 h-3 transition-transform duration-300 ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path d="M15 19l-7-7 7-7"/>
           </svg>
         </button>
 
         {/* Nav */}
-        <nav className="flex-1 py-4 overflow-y-auto">
+        <nav className="flex-1 px-3 py-5 overflow-y-auto">
           {NAV_ITEMS.filter(item => !item.superAdminOnly || isSuperAdmin).map(item => (
             <button
               key={item.key}
@@ -664,72 +727,74 @@ export default function AdminDashboardPage() {
                 navigate(item.key === 'overview' ? '/admin' : `/admin?section=${item.key}`, { replace: true });
               }}
               title={sidebarCollapsed ? item.label : undefined}
-              className={`w-full flex items-center gap-3 px-5 py-3 transition-all group ${
+              className={`mb-1 w-full flex items-center gap-3 rounded-2xl px-4 py-3 transition-all group ${
                 activeSection === item.key
-                  ? 'bg-white/70 text-[#1a3a2a] font-black border-r-2 border-[#1a3a2a]'
-                  : 'text-[#5a7a6a] hover:bg-white/50 hover:text-[#1a3a2a] font-semibold'
+                  ? 'border border-[#3f6c59] bg-[linear-gradient(135deg,rgba(255,255,255,0.14),rgba(255,255,255,0.06))] text-white font-black shadow-[0_12px_28px_rgba(0,0,0,0.18)]'
+                  : 'border border-transparent text-[#99b7a8] hover:bg-white/6 hover:border-white/8 hover:text-white font-semibold'
               }`}
             >
               <span className="shrink-0">{item.icon}</span>
-              {!sidebarCollapsed && (
-                <>
-                  <span className="flex-1 text-left text-xs uppercase tracking-widest">{item.label}</span>
-                  <svg className="w-3 h-3 opacity-40" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                    <path d="M9 5l7 7-7 7"/>
-                  </svg>
-                </>
-              )}
+              <div className={`flex min-w-0 flex-1 items-center justify-between overflow-hidden transition-all duration-300 ease-out ${sidebarCollapsed ? 'max-w-0 opacity-0' : 'max-w-[180px] opacity-100 delay-75'}`}>
+                <span className="flex-1 whitespace-nowrap text-left text-xs uppercase tracking-[0.24em]">{item.label}</span>
+                <svg className="w-3 h-3 shrink-0 opacity-40" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path d="M9 5l7 7-7 7"/>
+                </svg>
+              </div>
             </button>
           ))}
         </nav>
 
         {/* Bottom */}
-        <div className="border-t border-[#e0d9ce] py-4 px-5 space-y-1">
-          {!sidebarCollapsed && (
-            <p className="text-[10px] uppercase tracking-widest text-[#8a9a8a] font-semibold mb-3">
-              powered by <span className="font-black text-[#1a3a2a]">lifewood</span>
+        <div className="border-t border-white/10 py-4 px-5 space-y-1">
+          <div className={`overflow-hidden transition-all duration-300 ease-out ${sidebarCollapsed ? 'max-h-0 opacity-0' : 'max-h-12 opacity-100 delay-75'}`}>
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#85a494]">
+              powered by <span className="font-black text-white">lifewood</span>
             </p>
-          )}
+          </div>
           <a
             href="/"
             target="_blank"
             rel="noopener noreferrer"
             title={sidebarCollapsed ? 'View Website' : undefined}
-            className="flex items-center gap-3 py-2 text-[#5a7a6a] hover:text-[#1a3a2a] transition-colors"
+            className="flex items-center gap-3 py-2 text-[#99b7a8] hover:text-white transition-colors"
           >
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/>
             </svg>
-            {!sidebarCollapsed && <span className="text-xs font-semibold">View Website</span>}
+            <span className={`overflow-hidden whitespace-nowrap text-xs font-semibold uppercase tracking-[0.2em] transition-all duration-300 ease-out ${sidebarCollapsed ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100 delay-75'}`}>View Website</span>
           </a>
           <button
             onClick={handleLogout}
             title={sidebarCollapsed ? 'Sign Out' : undefined}
-            className="flex items-center gap-3 py-2 text-[#5a7a6a] hover:text-red-600 transition-colors w-full"
+            className="flex items-center gap-3 py-2 text-[#99b7a8] hover:text-[#ffb4a4] transition-colors w-full"
           >
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
             </svg>
-            {!sidebarCollapsed && <span className="text-xs font-semibold">Sign Out</span>}
+            <span className={`overflow-hidden whitespace-nowrap text-xs font-semibold uppercase tracking-[0.2em] transition-all duration-300 ease-out ${sidebarCollapsed ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100 delay-75'}`}>Sign Out</span>
           </button>
         </div>
       </aside>
 
       {/* ── Main content ── */}
-      <main className="flex-1 overflow-y-auto bg-[#f7f4ef]">
+      <main className="relative z-10 flex-1 overflow-y-auto">
         <div className="p-8 min-h-full">
 
           {/* Header */}
-          <div className="flex items-start justify-between mb-8">
-            <div>
-              <h1 className="text-2xl font-black text-[#1a2e1a] tracking-tight">{sectionTitle[activeSection]}</h1>
-              <p className="text-sm text-[#6a8a7a] font-medium mt-0.5">{sectionSub[activeSection]}</p>
-            </div>
-            <div className="flex items-center gap-3">
+          <div className="mb-8 rounded-[30px] border border-white/60 bg-[linear-gradient(135deg,rgba(255,255,255,0.86),rgba(249,246,240,0.72))] p-6 shadow-[0_24px_60px_rgba(20,45,33,0.12)] backdrop-blur-md">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="inline-flex items-center rounded-full border border-[#d7dfd5] bg-[#f6fbf7] px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-[#416452]">
+                  Admin Workspace
+                </span>
+                <h1 className="mt-4 text-3xl font-black tracking-[-0.03em] text-[#172d22]">{sectionTitle[activeSection]}</h1>
+                <p className="mt-1 text-sm font-medium text-[#6a8a7a]">{sectionSub[activeSection]}</p>
+              </div>
+              <div className="flex items-center gap-3">
               <button
                 onClick={handleExport}
                 disabled={loading || exporting || inquiries.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-[#fff7e6] text-[#1a3a2a] border border-[#eadbbd] font-bold text-xs rounded-xl hover:bg-[#f7eed7] transition-all disabled:opacity-50 uppercase tracking-wider"
+                className="flex items-center gap-2 px-4 py-2.5 bg-[linear-gradient(180deg,#fffaf0_0%,#f8efda_100%)] text-[#1a3a2a] border border-[#eadbbd] font-bold text-xs rounded-2xl hover:-translate-y-0.5 hover:bg-[#f7eed7] transition-all disabled:opacity-50 uppercase tracking-[0.22em] shadow-[0_10px_24px_rgba(218,189,122,0.12)]"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
                   <path d="M12 3v12m0 0l4-4m-4 4l-4-4M5 21h14" />
@@ -739,7 +804,7 @@ export default function AdminDashboardPage() {
               <button
                 onClick={() => setRefreshKey(k => k + 1)}
                 disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1a3a2a] text-white font-bold text-xs rounded-xl hover:bg-[#2a5a3a] transition-all disabled:opacity-50 uppercase tracking-wider"
+                className="flex items-center gap-2 px-4 py-2.5 bg-[linear-gradient(135deg,#173826,#29543f)] text-white font-bold text-xs rounded-2xl hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(23,56,38,0.24)] transition-all disabled:opacity-50 uppercase tracking-[0.22em] shadow-[0_14px_30px_rgba(23,56,38,0.2)]"
               >
                 <svg className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                   <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -747,6 +812,7 @@ export default function AdminDashboardPage() {
                 Refresh
               </button>
             </div>
+          </div>
           </div>
 
 
@@ -775,20 +841,20 @@ export default function AdminDashboardPage() {
           {activeSection === 'logs' && <AdminLogsPanel isSuperAdmin={isSuperAdmin} refreshKey={refreshKey} />}
 
           {/* Table — hidden on applicants and logs */}
-          {activeSection !== 'applicants' && activeSection !== 'logs' && (<div className="bg-white rounded-2xl border border-[#e8e3da] shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-[#f0ebe2] flex items-center justify-between gap-3 flex-wrap">
+          {activeSection !== 'applicants' && activeSection !== 'logs' && (<div className="overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(248,245,239,0.86))] shadow-[0_22px_54px_rgba(20,45,33,0.1)] backdrop-blur-sm">
+            <div className="px-6 py-4 border-b border-[#edf1eb] bg-[linear-gradient(180deg,rgba(248,252,249,0.92),rgba(246,241,233,0.76))] flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3 flex-wrap">
                 <h2 className="font-black text-[#1a2e1a] text-base">
                   {activeSection === 'overview' ? 'Recent Submissions' : sectionTitle[activeSection]}
                 </h2>
                 {activeSection === 'overview' && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 rounded-2xl border border-[#d9e2da] bg-white/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
                     {(['all', 'contact', 'career', 'project'] as const).map(f => (
                       <button
                         key={f}
                         type="button"
                         onClick={() => setOverviewFilter(f)}
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide transition-colors ${overviewFilter === f ? 'bg-[#1a3a2a] text-white' : 'bg-[#f2ece0] text-[#6a8a7a] hover:bg-[#e4dcd0]'}`}
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.18em] transition-colors ${overviewFilter === f ? 'bg-[linear-gradient(135deg,#173826,#29543f)] text-white shadow-[0_10px_18px_rgba(23,56,38,0.16)]' : 'text-[#6a8a7a] hover:bg-[#eef4ef]'}`}
                       >
                         {f === 'all' ? 'All' : f === 'contact' ? 'Inquiries' : f === 'career' ? 'Applications' : 'Projects'}
                       </button>
@@ -809,7 +875,7 @@ export default function AdminDashboardPage() {
                     Delete {selectedInquiryIds.length}
                   </button>
                 ) : null}
-                <span className="text-xs font-bold text-[#8a9a8a] bg-[#f2ece0] px-3 py-1 rounded-full">
+                <span className="text-xs font-bold text-[#708577] bg-[#f4f8f5] border border-[#dde5dc] px-3 py-1 rounded-full">
                   {loading ? '…' : filteredInquiries.length} {activeSection === 'overview' ? 'recent' : 'total'}
                 </span>
               </div>
@@ -834,15 +900,15 @@ export default function AdminDashboardPage() {
               <div className="overflow-x-auto">
                 <table className="w-full table-fixed">
                   <colgroup>
-                    <col style={{ width: '44px' }} />
-                    <col style={{ width: activeSection === 'overview' ? '32%' : '35%' }} />
-                    <col style={{ width: '130px' }} />
-                    {activeSection === 'contacts' && <col style={{ width: '28%' }} />}
-                    {activeSection === 'projects' && <col style={{ width: '20%' }} />}
-                    {activeSection === 'projects' && <col style={{ width: '130px' }} />}
-                    <col style={{ width: '130px' }} />
-                    <col style={{ width: '160px' }} />
-                    <col style={{ width: '150px' }} />
+                    <col style={{ width: DASHBOARD_TABLE_WIDTHS.checkbox }} />
+                    <col style={{ width: activeSection === 'overview' ? '32%' : DASHBOARD_TABLE_WIDTHS.inquirer }} />
+                    <col style={{ width: DASHBOARD_TABLE_WIDTHS.type }} />
+                    {activeSection === 'contacts' && <col style={{ width: DASHBOARD_TABLE_WIDTHS.message }} />}
+                    {activeSection === 'projects' && <col style={{ width: DASHBOARD_TABLE_WIDTHS.message }} />}
+                    {(activeSection === 'contacts' || activeSection === 'projects') && <col style={{ width: DASHBOARD_TABLE_WIDTHS.details }} />}
+                    <col style={{ width: DASHBOARD_TABLE_WIDTHS.appliedDate }} />
+                    <col style={{ width: DASHBOARD_TABLE_WIDTHS.status }} />
+                    <col style={{ width: DASHBOARD_TABLE_WIDTHS.action }} />
                   </colgroup>
                   <thead>
                     <tr className="border-b border-[#f0ebe2]">
@@ -854,7 +920,10 @@ export default function AdminDashboardPage() {
                         Type
                       </th>
                       {activeSection === 'contacts' && (
-                        <th className="text-left px-4 py-3 text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest">Message</th>
+                        <>
+                          <th className="text-left px-4 py-3 text-[10px] font-black text-[#8a9a8a] uppercase tracking-widest">Message</th>
+                          <th className="px-4 py-3" aria-hidden="true" />
+                        </>
                       )}
                       {activeSection === 'projects' && (
                         <>
@@ -920,31 +989,34 @@ export default function AdminDashboardPage() {
 
                           {/* Contacts-only column */}
                           {activeSection === 'contacts' && (
-                            <td className="px-4 py-4 max-w-[260px]">
-                              {inquiry.message ? (
-                                <div className="flex items-start gap-2">
-                                  <p className={`flex-1 text-xs text-[#8a9a8a] leading-relaxed ${isMessageExpanded ? '' : 'line-clamp-2'}`} title={inquiry.message}>{inquiry.message}</p>
-                                  {hasLongText(inquiry.message) ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => setExpandedMessageIds(current => isMessageExpanded ? current.filter(id => id !== inquiry.id) : [...current, inquiry.id])}
-                                      className="mt-0.5 shrink-0 flex items-center justify-center w-6 h-6 rounded-full border border-[#d9cfbf] bg-white text-[#1a3a2a] transition-colors hover:bg-[#f8f3ea]"
-                                      aria-label={isMessageExpanded ? 'Collapse' : 'Expand'}
-                                    >
-                                      <svg className={`w-3 h-3 transition-transform ${isMessageExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                                        <path d="M6 9l6 6 6-6"/>
-                                      </svg>
-                                    </button>
-                                  ) : null}
-                                </div>
-                              ) : <span className="text-xs text-[#c0c8c0]">—</span>}
-                            </td>
+                            <>
+                              <td className="px-4 py-4 max-w-[260px]">
+                                {inquiry.message ? (
+                                  <div className="flex items-start gap-2">
+                                    <p className={`flex-1 text-xs text-[#8a9a8a] leading-relaxed ${isMessageExpanded ? '' : 'line-clamp-2'}`} title={inquiry.message}>{inquiry.message}</p>
+                                    {hasLongText(inquiry.message) ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => setExpandedMessageIds(current => isMessageExpanded ? current.filter(id => id !== inquiry.id) : [...current, inquiry.id])}
+                                        className="mt-0.5 shrink-0 flex items-center justify-center w-6 h-6 rounded-full border border-[#d9cfbf] bg-white text-[#1a3a2a] transition-colors hover:bg-[#f8f3ea]"
+                                        aria-label={isMessageExpanded ? 'Collapse' : 'Expand'}
+                                      >
+                                        <svg className={`w-3 h-3 transition-transform ${isMessageExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                                          <path d="M6 9l6 6 6-6"/>
+                                        </svg>
+                                      </button>
+                                    ) : null}
+                                  </div>
+                                ) : <span className="text-xs text-[#c0c8c0]">—</span>}
+                              </td>
+                              <td className="px-4 py-4" aria-hidden="true" />
+                            </>
                           )}
 
                           {/* Projects-only columns */}
                           {activeSection === 'projects' && (
                             <>
-                              <td className="px-4 py-4 max-w-[200px]">
+                              <td className="px-4 py-4 max-w-[260px]">
                                 {inquiry.message ? (
                                   <div className="flex items-start gap-2">
                                     <p className={`flex-1 text-xs text-[#8a9a8a] leading-relaxed ${isMessageExpanded ? '' : 'line-clamp-2'}`} title={inquiry.message}>{inquiry.message}</p>
@@ -1086,7 +1158,7 @@ export default function AdminDashboardPage() {
 
       {/* ── Respond Modal ── */}
       {respondTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(9,16,12,0.42)] px-3 py-5 backdrop-blur-md">
           <div className="w-full max-w-xl rounded-[28px] border border-white/65 bg-[#f7f2e8]/35 p-1.5 shadow-[0_28px_80px_rgba(19,41,30,0.24)] backdrop-blur-md">
             <div className="overflow-hidden rounded-[24px] bg-white shadow-[0_10px_30px_rgba(19,41,30,0.08)]">
             {/* Modal header */}
@@ -1095,7 +1167,7 @@ export default function AdminDashboardPage() {
                 <span className="inline-flex items-center rounded-full border border-[#e4d7c2] bg-[#fff9ef] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#8a7d63]">
                   Email Composer
                 </span>
-                <div>
+                <div className="min-w-0 flex-1">
                   <h3 className="text-[1.1rem] font-black leading-tight text-[#193728]">Respond to {capitalizeName(respondTarget.name || respondTarget.email)}</h3>
                   <p className="mt-1.5 text-[13px] font-medium text-[#6d7c70]">
                     Sending to <span className="font-bold text-[#29523d]">{respondTarget.email}</span>
@@ -1220,9 +1292,9 @@ export default function AdminDashboardPage() {
       )}
       {detailsTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3">
-          <div className="w-full max-w-3xl rounded-[28px] border border-white/65 bg-[#f7f2e8]/35 p-1.5 shadow-[0_28px_80px_rgba(19,41,30,0.24)] backdrop-blur-md">
-            <div className="overflow-hidden rounded-[24px] bg-white shadow-[0_10px_30px_rgba(19,41,30,0.08)]">
-              <div className="flex items-start justify-between gap-4 border-b border-[#ece3d4] bg-[linear-gradient(135deg,rgba(247,242,232,0.92),rgba(255,255,255,0.98))] px-6 py-4">
+          <div className="w-full max-w-4xl rounded-[32px] border border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.38),rgba(247,242,232,0.18))] p-1.5 shadow-[0_32px_100px_rgba(15,33,25,0.28)]">
+            <div className="overflow-hidden rounded-[28px] border border-[#e8ecdf] bg-white shadow-[0_18px_48px_rgba(19,41,30,0.12)]">
+              <div className="relative overflow-hidden border-b border-[#e7e2d8] bg-[radial-gradient(circle_at_top_left,rgba(52,108,79,0.18),transparent_34%),linear-gradient(135deg,#fcfaf5_0%,#f5efe4_52%,#fdfcf8_100%)] px-6 py-5">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#8a9a8a]">Applicant Details</p>
                   <h3 className="mt-2 text-[1.1rem] font-black leading-tight text-[#193728]">{capitalizeName(detailsTarget.name || detailsTarget.email)}</h3>
@@ -1275,54 +1347,81 @@ export default function AdminDashboardPage() {
         </div>
       )}
       {projectDetailsTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3">
-          <div className="w-full max-w-3xl rounded-[28px] border border-white/65 bg-[#f7f2e8]/35 p-1.5 shadow-[0_28px_80px_rgba(19,41,30,0.24)] backdrop-blur-md">
-            <div className="overflow-hidden rounded-[24px] bg-white shadow-[0_10px_30px_rgba(19,41,30,0.08)]">
-              <div className="flex items-start justify-between gap-4 border-b border-[#ece3d4] bg-[linear-gradient(135deg,rgba(247,242,232,0.92),rgba(255,255,255,0.98))] px-6 py-4">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#8a9a8a]">Project Details</p>
-                  <h3 className="mt-2 text-[1.1rem] font-black leading-tight text-[#193728]">{capitalizeName(projectDetailsTarget.name || projectDetailsTarget.email)}</h3>
-                  <p className="mt-1 text-[13px] font-medium text-[#6d7c70]">{projectDetailsTarget.organization || projectDetailsTarget.service || '—'}</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(9,16,12,0.42)] px-3 py-5 backdrop-blur-md">
+          <div className="w-full max-w-4xl rounded-[32px] border border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.38),rgba(247,242,232,0.18))] p-1.5 shadow-[0_32px_100px_rgba(15,33,25,0.28)]">
+            <div className="overflow-hidden rounded-[28px] border border-[#e8ecdf] bg-white shadow-[0_18px_48px_rgba(19,41,30,0.12)]">
+              <div className="relative overflow-hidden border-b border-[#e7e2d8] bg-[radial-gradient(circle_at_top_left,rgba(52,108,79,0.18),transparent_34%),linear-gradient(135deg,#fcfaf5_0%,#f5efe4_52%,#fdfcf8_100%)] px-6 py-5">
+                <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[rgba(21,74,53,0.08)] blur-3xl" />
+                <div className="absolute bottom-0 left-0 right-0 h-px bg-[linear-gradient(90deg,transparent,rgba(40,86,63,0.28),transparent)]" />
+                <div className="relative flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="inline-flex items-center rounded-full border border-[#d8dece] bg-white/78 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-[#547361] shadow-[0_8px_18px_rgba(31,57,43,0.06)]">
+                      Project Details
+                    </div>
+                    <h3 className="mt-3 text-[1.45rem] font-black leading-tight tracking-[-0.03em] text-[#193728]">
+                      {capitalizeName(projectDetailsTarget.name || projectDetailsTarget.email)}
+                    </h3>
+                    <p className="mt-1 text-[13px] font-medium text-[#6a7b70]">
+                      {projectDetailsTarget.organization || 'Independent inquiry'}
+                    </p>
+                    </div>
+                  <button
+                    onClick={() => setProjectDetailsTarget(null)}
+                    className="relative z-10 mt-0.5 flex h-11 w-11 items-center justify-center rounded-full border border-[#d9dece] bg-white/92 text-[#768779] shadow-[0_10px_22px_rgba(19,41,30,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f9f5ed] hover:text-[#183326]"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.4} viewBox="0 0 24 24">
+                      <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
                 </div>
-                <button
-                  onClick={() => setProjectDetailsTarget(null)}
-                  className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full border border-[#e8dccb] bg-white/90 text-[#7f8f82] shadow-[0_8px_18px_rgba(19,41,30,0.08)] transition-colors hover:bg-[#f8f3ea] hover:text-[#1a2e1a]"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                    <path d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                </button>
               </div>
 
-              <div className="max-h-[62vh] overflow-y-auto px-6 py-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="max-h-[66vh] overflow-y-auto bg-[linear-gradient(180deg,#fffdfa_0%,#f6f3eb_100%)] px-6 py-5">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
                   {projectDetails(projectDetailsTarget).map(item => (
-                    <div key={item.label} className={`rounded-xl border border-[#e8e3da] bg-[#fffdfa] p-3 ${String(item.value).length > 100 ? 'col-span-2 md:col-span-3' : ''}`}>
-                      <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#8a9a8a]">{item.label}</p>
-                      <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-5 text-[#203427]">{item.value}</p>
+                    <div
+                      key={item.label}
+                      className={`rounded-2xl border border-[#e3e8dd] bg-white/92 p-4 shadow-[0_10px_24px_rgba(20,44,31,0.05)] ${
+                        String(item.value).length > 100 ? 'md:col-span-6' : 'md:col-span-2'
+                      }`}
+                    >
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#90a292]">{item.label}</p>
+                      <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-6 text-[#203427]">{item.value}</p>
                     </div>
                   ))}
                   {projectDetailsTarget.attachment_url && (
-                    <div className="rounded-xl border border-[#e8e3da] bg-[#fffdfa] p-3 col-span-2 md:col-span-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8a9a8a]">Attachment</p>
-                      <div className="mt-2">
+                    <div className="md:col-span-6 rounded-[22px] border border-[#dfe6da] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,246,239,0.96))] p-4 shadow-[0_12px_28px_rgba(20,44,31,0.06)]">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#dbe2d5] bg-[#f4f8f2] text-[#1d4a35] shadow-[0_8px_18px_rgba(29,74,53,0.08)]">
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#90a292]">Attachment</p>
+                            <p className="mt-1 text-sm font-semibold text-[#1b3528]">
+                              {projectDetailsTarget.attachment_name || 'Attached file'}
+                            </p>
+                            <p className="mt-1 text-xs text-[#708173]">Open the uploaded file in a new tab for review.</p>
+                          </div>
+                        </div>
                         <a
                           href={projectDetailsTarget.attachment_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 rounded-xl border border-[#d9cfbf] bg-white px-4 py-2 text-xs font-bold text-[#1a3a2a] transition-colors hover:bg-[#f8f3ea]"
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#d6dece] bg-white px-4 py-2.5 text-sm font-bold text-[#173526] shadow-[0_10px_22px_rgba(20,44,31,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f6f3ec]"
                         >
-                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                             <path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
                           </svg>
-                          {projectDetailsTarget.attachment_name || 'View file'}
+                          View attachment
                         </a>
                       </div>
                     </div>
                   )}
                 </div>
               </div>
-
             </div>
           </div>
         </div>

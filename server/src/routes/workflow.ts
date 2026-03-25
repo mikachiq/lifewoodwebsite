@@ -34,10 +34,8 @@ router.post('/', async (req, res) => {
     const validKeys = [
       'screening-link',
       'screening-reject',
-      'screening-follow-up',
       'interview-schedule',
       'talent-pool',
-      'inactive',
       'hired',
     ];
 

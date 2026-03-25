@@ -148,6 +148,12 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
+    if (name === 'phoneNumber') {
+      const digitsOnly = value.replace(/\D/g, '').slice(0, 15);
+      setFormData(prev => ({ ...prev, phoneNumber: digitsOnly }));
+      return;
+    }
+
     if (name === 'position') {
       setFormData(prev => {
         if (!value) {
@@ -231,11 +237,18 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
         }
       }
 
-      const role = effectivePosition || formData.position;
+      const positionSlug = effectivePosition || formData.position;
+      const selectedPositionLabel = positions.find(p => p.value === positionSlug)?.label;
+      const role = selectedPositionLabel || positionSlug;
+      const workLocationLabel =
+        officeLocations.find(loc => loc.value === formData.workLocation)?.label ||
+        workLocationOptions.find(opt => opt.value === formData.workLocation)?.label ||
+        formData.workLocation.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
       const notes = JSON.stringify({
         phone: `${formData.phoneCountryCode} ${formData.phoneNumber}`.trim(),
         experience: formData.experience,
-        workLocation: formData.workLocation,
+        workLocation: workLocationLabel,
         availability: formData.availability,
         languages: formData.languages.join(', '),
         skills: formData.skills,
@@ -409,7 +422,7 @@ const EmploymentModal: React.FC<EmploymentModalProps> = ({ onClose, translations
                               </div>
                             </div>
                             <input
-                              type="tel" required name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange}
+                              type="tel" required inputMode="numeric" pattern="[0-9]{6,15}" minLength={6} maxLength={15} name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange}
                               placeholder={translations.formPhonePlaceholder}
                               className="flex-1 px-4 py-3 bg-transparent text-dark-serpent dark:text-white focus:outline-none text-sm font-semibold placeholder-green-2/50 dark:placeholder-green-4/50 placeholder:text-xs"
                             />

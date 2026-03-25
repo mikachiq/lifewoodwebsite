@@ -45,8 +45,6 @@ export interface HRApplicant {
   screeningSentAt?: string;
   screeningCompletedAt?: string;
   lastContacted?: string;
-  responseDueAt?: string;
-  followUpDueAt?: string;
   interviewScheduledFor?: string;
   interviewMeetLink?: string;
   interviewEmailDraft?: string;
@@ -111,8 +109,6 @@ function mapRow(row: Record<string, unknown>): HRApplicant {
     screeningSentAt: row.screening_sent_at as string | undefined,
     screeningCompletedAt: row.screening_completed_at as string | undefined,
     lastContacted: row.last_contacted as string | undefined,
-    responseDueAt: row.response_due_at as string | undefined,
-    followUpDueAt: row.follow_up_due_at as string | undefined,
     interviewScheduledFor: row.interview_scheduled_for as string | undefined,
     interviewMeetLink: row.interview_meet_link as string | undefined,
     interviewEmailDraft: row.interview_email_draft as string | undefined,
@@ -134,16 +130,20 @@ function mapRow(row: Record<string, unknown>): HRApplicant {
 
 // ── Helper functions ──────────────────────────────────────────────────────────
 
-// Adds N calendar days from now
-function addDays(n: number): string {
-  return new Date(Date.now() + n * 86400000).toISOString();
-}
-
 const ACRONYMS = new Set(['ai', 'hr', 'it', 'qa', 'ui', 'ux', 'nlp', 'ml']);
 
+// Real position-related words that are 6 chars and must never be stripped as a random suffix
+const POSITION_WORDS = new Set([
+  'intern', 'senior', 'junior', 'lead', 'head', 'chief', 'data',
+  'design', 'writer', 'editor', 'tester', 'devops', 'expert',
+]);
+
 function fmtRole(role: string): string {
-  // Strip trailing 6-char random suffix added during position creation (e.g. "ai-data-annotator-btfzkj")
-  const cleaned = role.replace(/-[a-z0-9]{6}$/, '');
+  // Strip trailing 6-char random suffix ONLY if it's not a real position word
+  const parts = role.split('-');
+  const last = parts[parts.length - 1];
+  const hasSuffix = parts.length > 1 && last.length === 6 && !POSITION_WORDS.has(last.toLowerCase());
+  const cleaned = hasSuffix ? parts.slice(0, -1).join('-') : role;
   return cleaned.split(/[-_\s]+/).filter(Boolean)
     .map(p => ACRONYMS.has(p.toLowerCase()) ? p.toUpperCase() : p.charAt(0).toUpperCase() + p.slice(1))
     .join(' ');
@@ -167,7 +167,7 @@ function buildHrEmail(opts: {
   reason?: string;
 }): { badge: string; subject: string; body: string; meta: { label: string; value: string; color?: string }[] } {
   const role = fmtRole(opts.role);
-  const reason = opts.reason || 'We selected another candidate whose profile is more aligned with the current role requirements.';
+  const reason = opts.reason?.trim() || '';
 
   switch (opts.templateKey) {
     case 'screening-link':
@@ -181,19 +181,12 @@ function buildHrEmail(opts: {
       return {
         badge: 'Application Update',
         subject: `Your Application for ${role} at Lifewood`,
-        body: `Thank you for reaching out to Lifewood regarding the ${role} position and for the time you invested in your application.\n\nAfter careful consideration, we regret to inform you that we will not be moving forward with your application at this time.\n\n${reason}\n\nWe appreciate the effort you put into your application and wish you all the best in your future endeavors.`,
-        meta: [{ label: 'Position', value: role }, { label: 'Date', value: todayStr() }],
-      };
-    case 'screening-follow-up':
-      return {
-        badge: 'Screening Reminder',
-        subject: `Reminder: Complete Your AI Screening — ${role} at Lifewood`,
-        body: `This is a friendly reminder that you have a pending AI screening assessment for the ${role} position at Lifewood.\n\nPlease complete the assessment as soon as possible using the link below.\n\nhttps://lifewoodph-ai-interviewer.vercel.app/\n\nIf we do not hear back, your application may be marked as inactive. Please reach out if you have any questions.`,
+        body: `Thank you for reaching out to Lifewood regarding the ${role} position and for the time you invested in your application.\n\nAfter careful consideration, we regret to inform you that we will not be moving forward with your application at this time.${reason ? `\n\n${reason}` : ''}\n\nWe appreciate the effort you put into your application and wish you all the best in your future endeavors.`,
         meta: [{ label: 'Position', value: role }, { label: 'Date', value: todayStr() }],
       };
     case 'interview-schedule': {
       const body = opts.customBody ||
-        `Congratulations on passing the initial screening! We would like to set an interview with you. Please review the date and details below.\n\nPlease note that if you do not join within 10 minutes of the scheduled time, we will consider your application as inactive. If you need to reschedule, please contact us in advance.`;
+        `Congratulations on passing the initial screening! We would like to set an interview with you. Please review the date and details below.\n\nIf you need to reschedule, please contact us in advance.`;
       return {
         badge: 'Interview Invitation',
         subject: `Interview Scheduled — ${role} at Lifewood`,
@@ -207,7 +200,7 @@ function buildHrEmail(opts: {
     }
     case 'talent-pool': {
       const body = opts.customBody ||
-        `Thank you for your interest in Lifewood. While we don't have an immediate opening that matches your profile right now, we'd like to keep you in our talent pool for future opportunities.`;
+        `Thank you for your interest in Lifewood. After careful consideration, we will be moving forward with other candidates at this time. However, we have saved your profile in our future candidates pool, and if an open position or any opportunity related to your role becomes available, we will contact you immediately.`;
       return {
         badge: 'Talent Pool',
         subject: `Update on Your Lifewood Application — ${role}`,
@@ -215,13 +208,6 @@ function buildHrEmail(opts: {
         meta: [{ label: 'Position', value: role }, { label: 'Date', value: todayStr() }],
       };
     }
-    case 'inactive':
-      return {
-        badge: 'Application Status',
-        subject: `Your Lifewood Application Has Been Marked Inactive — ${role}`,
-        body: `We noticed we haven't heard back from you regarding your application for the ${role} position at Lifewood.\n\nYour application has been marked as inactive due to no response within the allotted timeframe.\n\nIf you remain interested in opportunities at Lifewood, we welcome you to reapply in the future. Thank you for your interest, and we wish you the best.`,
-        meta: [{ label: 'Position', value: role }, { label: 'Date', value: todayStr() }],
-      };
     case 'hired':
       return {
         badge: 'Offer Extended',
@@ -240,7 +226,6 @@ function notifMessage(templateKey: string, role: string): string {
     case 'screening-reject':  return `An update regarding your application for the ${role} position has been sent to your email.`;
     case 'interview-schedule':return `Your interview for the ${role} position has been scheduled. Please check your email for details.`;
     case 'talent-pool':       return `You have been added to the Lifewood talent pool for the ${role} role. Check your email for details.`;
-    case 'inactive':          return `Your application for the ${role} position has been marked inactive. Check your email for details.`;
     case 'hired':             return `Congratulations! You have been selected for the ${role} position at Lifewood. Check your email for your offer details.`;
     default:                  return `You have a new update from Lifewood HR regarding your application. Check your email for details.`;
   }
@@ -433,7 +418,7 @@ export function useHRPipeline() {
     }
   }, [applicants]);
 
-  // ── Delete helper (for reject + inactive) ──────────────────────────────────
+  // ── Delete helper ────────────────────────────────────────────────────────────
   const deleteApplicant = useCallback(async (id: string) => {
     setApplicants(prev => prev.filter(a => a.id !== id));
     setWorking(id);
@@ -454,11 +439,10 @@ export function useHRPipeline() {
     const a = applicants.find(x => x.id === id);
     if (!a) return;
     const now = new Date().toISOString();
-    const responseDueAt = addDays(2);
     await mutate(
       id,
-      { status: 'Screening Sent', previousStatus: a.status ?? undefined, screeningSentAt: now, lastContacted: now, responseDueAt },
-      { status: 'Screening Sent', previous_status: a.status, screening_sent_at: now, last_contacted: now, response_due_at: responseDueAt },
+      { status: 'Screening Sent', previousStatus: a.status ?? undefined, screeningSentAt: now, lastContacted: now },
+      { status: 'Screening Sent', previous_status: a.status, screening_sent_at: now, last_contacted: now },
       () => sendEmail({ templateKey: 'screening-link', to: a.email, name: a.name, role: a.role })
     );
     void logAdminAction('applicant_stage_changed', 'hr_applicant', fmtName(a.name), `Moved to: Screening Sent — ${fmtRole(a.role)}`);
@@ -489,8 +473,8 @@ export function useHRPipeline() {
 
     await mutate(
       id,
-      { status: 'Screening Completed', previousStatus: 'Screening Sent', screeningScore, screeningCompletedAt: now, responseDueAt: undefined, followUpDueAt: undefined, notes: notesJson },
-      { status: 'Screening Completed', previous_status: 'Screening Sent', screening_score: screeningScore, screening_completed_at: now, response_due_at: null, follow_up_due_at: null, notes: notesJson }
+      { status: 'Screening Completed', previousStatus: 'Screening Sent', screeningScore, screeningCompletedAt: now, notes: notesJson },
+      { status: 'Screening Completed', previous_status: 'Screening Sent', screening_score: screeningScore, screening_completed_at: now, notes: notesJson }
     );
     void logAdminAction('applicant_screening_completed', 'hr_applicant', fmtName(a.name), `Score: ${screeningScore} — ${fmtRole(a.role)}`);
   }, [applicants, mutate]);
@@ -584,7 +568,7 @@ export function useHRPipeline() {
     const a = applicants.find(x => x.id === id);
     if (!a) return;
     const now = new Date().toISOString();
-    const defaultBody = "Thank you for your interest in Lifewood. While we don't have an immediate opening that matches your profile right now, we'd like to keep you in our talent pool for future opportunities. We'll be in touch when a suitable role becomes available.";
+    const defaultBody = "Thank you for your interest in Lifewood. After careful consideration, we will be moving forward with other candidates at this time. However, we have saved your profile in our future candidates pool, and if an open position or any opportunity related to your role becomes available, we will contact you immediately.";
     await mutate(
       id,
       { talentPool: true, talentPoolMovedAt: now },
@@ -604,17 +588,15 @@ export function useHRPipeline() {
   }, [applicants, deleteApplicant]);
 
   // ── 9. rejectApplicantWithEmail ───────────────────────────────────────────
-  const rejectApplicantWithEmail = useCallback(async (id: string, reason: string, customBody: string) => {
+  const rejectApplicantWithEmail = useCallback(async (id: string, customBody: string) => {
     const a = applicants.find(x => x.id === id);
     if (!a) return;
-    const resolvedReason = reason.trim() || 'We selected another candidate whose profile is more aligned with the current role requirements.';
-    const body = customBody.replace('[reason here]', resolvedReason);
+    const body = customBody.trim();
     await sendEmail({
       templateKey: 'screening-reject',
       to: a.email,
       name: a.name,
       role: a.role,
-      reason: resolvedReason,
       customBody: body,
     });
     void logAdminAction('applicant_rejected', 'hr_applicant', fmtName(a.name), `Rejected for: ${fmtRole(a.role)}`);
